@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active%20Development-orange.svg)](https://github.com/QiuGuangwww/SOTAgent)
 
-> An intelligent Agent built on Google ADK that helps researchers quickly find the latest SOTA models on specified benchmarks
+> An intelligent Agent built on Google ADK that helps researchers quickly find the latest SOTA models on specified benchmarks.
 
 </div>
 
