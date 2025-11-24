@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://pic.qiuguang.top/1_00000.7i0tjvunlu.webp" alt="SOTAgent Logo" width="200"/>
+<img src="https://pic.qiuguang.top/1_00000.7i0tjvunlu.webp" alt="SOTAgent Logo" width="400"/>
 
 
 **Intelligent SOTA Model Search Assistant**
