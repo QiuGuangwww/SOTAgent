@@ -1,0 +1,703 @@
+{
+  "2511.17411v1": {
+    "id": "2511.17411v1",
+    "title": "SPEAR-1: Scaling Beyond Robot Demonstrations via 3D Understanding",
+    "authors": [
+      "Nikolay Nikolov",
+      "Giuliano Albanese",
+      "Sombit Dey",
+      "Aleksandar Yanev",
+      "Luc Van Gool",
+      "Jan-Nico Zaech",
+      "Danda Pani Paudel"
+    ],
+    "summary": "Robotic Foundation Models (RFMs) hold great promise as generalist, end-to-end systems for robot control. Yet their ability to generalize across new environments, tasks, and embodiments remains limited. We argue that a major bottleneck lies in their foundations: most RFMs are built by fine-tuning internet-pretrained Vision-Language Models (VLMs). However, these VLMs are trained on 2D image-language tasks and lack the 3D spatial reasoning inherently required for embodied control in the 3D world. Bridging this gap directly with large-scale robotic data is costly and difficult to scale. Instead, we propose to enrich easy-to-collect non-robotic image data with 3D annotations and enhance a pretrained VLM with 3D understanding capabilities. Following this strategy, we train SPEAR-VLM, a 3D-aware VLM that infers object coordinates in 3D space from a single 2D image. Building on SPEAR-VLM, we introduce our main contribution, $~\\textbf{SPEAR-1}$: a robotic foundation model that integrates grounded 3D perception with language-instructed embodied control. Trained on $\\sim$45M frames from 24 Open X-Embodiment datasets, SPEAR-1 outperforms or matches state-of-the-art models such as $¦Ð_0$-FAST and $¦Ð_{0.5}$, while it uses 20$\\times$ fewer robot demonstrations. This carefully-engineered training strategy unlocks new VLM capabilities and as a consequence boosts the reliability of embodied control beyond what is achievable with only robotic data. We make our model weights and 3D-annotated datasets publicly available.",
+    "pdf_url": "https://arxiv.org/pdf/2511.17411v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.LG"
+    ],
+    "published": "2025-11-21",
+    "updated": "2025-11-21T17:09:43+00:00"
+  },
+  "2510.16617v1": {
+    "id": "2510.16617v1",
+    "title": "MoS-VLA: A Vision-Language-Action Model with One-Shot Skill Adaptation",
+    "authors": [
+      "Ruihan Zhao",
+      "Tyler Ingebrand",
+      "Sandeep Chinchali",
+      "Ufuk Topcu"
+    ],
+    "summary": "Vision-Language-Action (VLA) models trained on large robot datasets promise general-purpose, robust control across diverse domains and embodiments. However, existing approaches often fail out-of-the-box when deployed in novel environments, embodiments, or tasks. We introduce Mixture of Skills VLA (MoS-VLA), a framework that represents robot manipulation policies as linear combinations of a finite set of learned basis functions. During pretraining, MoS-VLA jointly learns these basis functions across datasets from the Open X-Embodiment project, producing a structured skill space. At test time, adapting to a new task requires only a single expert demonstration. The corresponding skill representation is then inferred via a lightweight convex optimization problem that minimizes the L1 action error, without requiring gradient updates. This gradient-free adaptation incurs minimal overhead while enabling rapid instantiation of new skills. Empirically, MoS-VLA achieves lower action-prediction error on five out of five unseen datasets and succeeds in both simulation and real-robot tasks where a pretrained VLA model fails outright. Project page: mos-vla.github.io/",
+    "pdf_url": "https://arxiv.org/pdf/2510.16617v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2025-10-18",
+    "updated": "2025-10-18T19:16:08+00:00"
+  },
+  "2510.07791v2": {
+    "id": "2510.07791v2",
+    "title": "GTR-Bench: Evaluating Geo-Temporal Reasoning in Vision-Language Models",
+    "authors": [
+      "Qinghongbing Xie",
+      "Zhaoyuan Xia",
+      "Feng Zhu",
+      "Lijun Gong",
+      "Ziyue Li",
+      "Rui Zhao",
+      "Long Zeng"
+    ],
+    "summary": "Recently spatial-temporal intelligence of Visual-Language Models (VLMs) has attracted much attention due to its importance for Autonomous Driving, Embodied AI and General Artificial Intelligence. Existing spatial-temporal benchmarks mainly focus on egocentric perspective reasoning with images/video context, or geographic perspective reasoning with graphics context (eg. a map), thus fail to assess VLMs' geographic spatial-temporal intelligence with both images/video and graphics context, which is important for areas like traffic management and emergency response. To address the gaps, we introduce Geo-Temporal Reasoning benchmark (GTR-Bench), a novel challenge for geographic temporal reasoning of moving targets in a large-scale camera network. GTR-Bench is more challenging as it requires multiple perspective switches between maps and videos, joint reasoning across multiple videos with non-overlapping fields of view, and inference over spatial-temporal regions that are unobserved by any video context. Evaluations of more than 10 popular VLMs on GTR-Bench demonstrate that even the best proprietary model, Gemini-2.5-Pro (34.9%), significantly lags behind human performance (78.61%) on geo-temporal reasoning. Moreover, our comprehensive analysis on GTR-Bench reveals three primary deficiencies of current models for geo-temporal reasoning. (1) VLMs' reasoning is impaired by an imbalanced utilization of spatial-temporal context. (2) VLMs are weak in temporal forecasting, which leads to worse performance on temporal-emphasized tasks than on spatial-emphasized tasks. (3) VLMs lack the proficiency to comprehend or align the map data with multi-view video inputs. We believe GTR-Bench offers valuable insights and opens up new opportunities for research and applications in spatial-temporal intelligence. Benchmark and code will be released at https://github.com/X-Luffy/GTR-Bench.",
+    "pdf_url": "https://arxiv.org/pdf/2510.07791v2",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2025-10-09",
+    "updated": "2025-10-10T10:28:26+00:00"
+  },
+  "2508.15354v1": {
+    "id": "2508.15354v1",
+    "title": "Sensing, Social, and Motion Intelligence in Embodied Navigation: A Comprehensive Survey",
+    "authors": [
+      "Chaoran Xiong",
+      "Yulong Huang",
+      "Fangwen Yu",
+      "Changhao Chen",
+      "Yue Wang",
+      "Songpengchen Xia",
+      "Ling Pei"
+    ],
+    "summary": "Embodied navigation (EN) advances traditional navigation by enabling robots to perform complex egocentric tasks through sensing, social, and motion intelligence. In contrast to classic methodologies that rely on explicit localization and pre-defined maps, EN leverages egocentric perception and human-like interaction strategies. This survey introduces a comprehensive EN formulation structured into five stages: Transition, Observation, Fusion, Reward-policy construction, and Action (TOFRA). The TOFRA framework serves to synthesize the current state of the art, provide a critical review of relevant platforms and evaluation metrics, and identify critical open research challenges. A list of studies is available at https://github.com/Franky-X/Awesome-Embodied-Navigation.",
+    "pdf_url": "https://arxiv.org/pdf/2508.15354v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2025-08-21",
+    "updated": "2025-08-21T08:33:51+00:00"
+  },
+  "2508.06426v1": {
+    "id": "2508.06426v1",
+    "title": "Shortcut Learning in Generalist Robot Policies: The Role of Dataset Diversity and Fragmentation",
+    "authors": [
+      "Youguang Xing",
+      "Xu Luo",
+      "Junlin Xie",
+      "Lianli Gao",
+      "Hengtao Shen",
+      "Jingkuan Song"
+    ],
+    "summary": "Generalist robot policies trained on large-scale datasets such as Open X-Embodiment (OXE) demonstrate strong performance across a wide range of tasks. However, they often struggle to generalize beyond the distribution of their training data. In this paper, we investigate the underlying cause of this limited generalization capability. We identify shortcut learning -- the reliance on task-irrelevant features -- as a key impediment to generalization. Through comprehensive theoretical and empirical analysis, we uncover two primary contributors to shortcut learning: (1) limited diversity within individual sub-datasets, and (2) significant distributional disparities across sub-datasets, leading to dataset fragmentation. These issues arise from the inherent structure of large-scale datasets like OXE, which are typically composed of multiple sub-datasets collected independently across varied environments and embodiments. Our findings provide critical insights into dataset collection strategies that can reduce shortcut learning and enhance the generalization ability of generalist robot policies. Moreover, in scenarios where acquiring new large-scale data is impractical, we demonstrate that carefully selected robotic data augmentation strategies can effectively reduce shortcut learning in existing offline datasets, thereby improving generalization capabilities of generalist robot policies, e.g., $¦Ð_0$, in both simulation and real-world environments. More information at https://lucky-light-sun.github.io/proj/shortcut-learning-in-grps/.",
+    "pdf_url": "https://arxiv.org/pdf/2508.06426v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "cs.CV"
+    ],
+    "published": "2025-08-08",
+    "updated": "2025-08-08T16:14:01+00:00"
+  },
+  "2507.23682v3": {
+    "id": "2507.23682v3",
+    "title": "villa-X: Enhancing Latent Action Modeling in Vision-Language-Action Models",
+    "authors": [
+      "Xiaoyu Chen",
+      "Hangxing Wei",
+      "Pushi Zhang",
+      "Chuheng Zhang",
+      "Kaixin Wang",
+      "Yanjiang Guo",
+      "Rushuai Yang",
+      "Yucen Wang",
+      "Xinquan Xiao",
+      "Li Zhao",
+      "Jianyu Chen",
+      "Jiang Bian"
+    ],
+    "summary": "Vision-Language-Action (VLA) models have emerged as a popular paradigm for learning robot manipulation policies that can follow language instructions and generalize to novel scenarios. Recent works have begun to explore the incorporation of latent actions, abstract representations of motion between two frames, into VLA pre-training. In this paper, we introduce villa-X, a novel Vision-Language-Latent-Action (ViLLA) framework that advances latent action modeling for learning generalizable robot manipulation policies. Our approach improves both how latent actions are learned and how they are incorporated into VLA pre-training. We demonstrate that villa-X can generate latent action plans in a zero-shot fashion, even for unseen embodiments and open-vocabulary symbolic understanding. This capability enables villa-X to achieve superior performance across diverse simulation tasks in SIMPLER and on two real-world robotic setups involving both gripper and dexterous hand manipulation. These results establish villa-X as a principled and scalable paradigm for learning generalizable robot manipulation policies. We believe it provides a strong foundation for future research.",
+    "pdf_url": "https://arxiv.org/pdf/2507.23682v3",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2025-07-31",
+    "updated": "2025-09-25T10:26:44+00:00"
+  },
+  "2507.13340v2": {
+    "id": "2507.13340v2",
+    "title": "Latent Policy Steering with Embodiment-Agnostic Pretrained World Models",
+    "authors": [
+      "Yiqi Wang",
+      "Mrinal Verghese",
+      "Jeff Schneider"
+    ],
+    "summary": "Learning visuomotor policies via imitation has proven effective across a wide range of robotic domains. However, the performance of these policies is heavily dependent on the number of training demonstrations, which requires expensive data collection in the real world. In this work, we aim to reduce data collection efforts when learning visuomotor robot policies by leveraging existing or cost-effective data from a wide range of embodiments, such as public robot datasets and the datasets of humans playing with objects (human data from play). Our approach leverages two key insights. First, we use optic flow as an embodiment-agnostic action representation to train a World Model (WM) across multi-embodiment datasets, and finetune it on a small amount of robot data from the target embodiment. Second, we develop a method, Latent Policy Steering (LPS), to improve the output of a behavior-cloned policy by searching in the latent space of the WM for better action sequences. In real world experiments, we observe significant improvements in the performance of policies trained with a small amount of data (over 50% relative improvement with 30 demonstrations and over 20% relative improvement with 50 demonstrations) by combining the policy with a WM pretrained on two thousand episodes sampled from the existing Open X-embodiment dataset across different robots or a cost-effective human dataset from play.",
+    "pdf_url": "https://arxiv.org/pdf/2507.13340v2",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2025-07-17",
+    "updated": "2025-09-21T23:37:25+00:00"
+  },
+  "2506.22756v1": {
+    "id": "2506.22756v1",
+    "title": "RoboPearls: Editable Video Simulation for Robot Manipulation",
+    "authors": [
+      "Tao Tang",
+      "Likui Zhang",
+      "Youpeng Wen",
+      "Kaidong Zhang",
+      "Jia-Wang Bian",
+      "xia zhou",
+      "Tianyi Yan",
+      "Kun Zhan",
+      "Peng Jia",
+      "Hefeng Wu",
+      "Liang Lin",
+      "Xiaodan Liang"
+    ],
+    "summary": "The development of generalist robot manipulation policies has seen significant progress, driven by large-scale demonstration data across diverse environments. However, the high cost and inefficiency of collecting real-world demonstrations hinder the scalability of data acquisition. While existing simulation platforms enable controlled environments for robotic learning, the challenge of bridging the sim-to-real gap remains. To address these challenges, we propose RoboPearls, an editable video simulation framework for robotic manipulation. Built on 3D Gaussian Splatting (3DGS), RoboPearls enables the construction of photo-realistic, view-consistent simulations from demonstration videos, and supports a wide range of simulation operators, including various object manipulations, powered by advanced modules like Incremental Semantic Distillation (ISD) and 3D regularized NNFM Loss (3D-NNFM). Moreover, by incorporating large language models (LLMs), RoboPearls automates the simulation production process in a user-friendly manner through flexible command interpretation and execution. Furthermore, RoboPearls employs a vision-language model (VLM) to analyze robotic learning issues to close the simulation loop for performance enhancement. To demonstrate the effectiveness of RoboPearls, we conduct extensive experiments on multiple datasets and scenes, including RLBench, COLOSSEUM, Ego4D, Open X-Embodiment, and a real-world robot, which demonstrate our satisfactory simulation performance.",
+    "pdf_url": "https://arxiv.org/pdf/2506.22756v1",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV",
+      "cs.RO"
+    ],
+    "published": "2025-06-28",
+    "updated": "2025-06-28T05:03:31+00:00"
+  },
+  "2505.09603v1": {
+    "id": "2505.09603v1",
+    "title": "DataMIL: Selecting Data for Robot Imitation Learning with Datamodels",
+    "authors": [
+      "Shivin Dass",
+      "Alaa Khaddaj",
+      "Logan Engstrom",
+      "Aleksander Madry",
+      "Andrew Ilyas",
+      "Roberto Mart¨ªn-Mart¨ªn"
+    ],
+    "summary": "Recently, the robotics community has amassed ever larger and more diverse datasets to train generalist robot policies. However, while these policies achieve strong mean performance across a variety of tasks, they often underperform on individual, specialized tasks and require further tuning on newly acquired task-specific data. Combining task-specific data with carefully curated subsets of large prior datasets via co-training can produce better specialized policies, but selecting data naively may actually harm downstream performance. To address this, we introduce DataMIL, a policy-driven data selection framework built on the datamodels paradigm that reasons about data selection in an end-to-end manner, using the policy itself to identify which data points will most improve performance. Unlike standard practices that filter data using human notions of quality (e.g., based on semantic or visual similarity), DataMIL directly optimizes data selection for task success, allowing us to select data that enhance the policy while dropping data that degrade it. To avoid performing expensive rollouts in the environment during selection, we use a novel surrogate loss function on task-specific data, allowing us to use DataMIL in the real world without degrading performance. We validate our approach on a suite of more than 60 simulation and real-world manipulation tasks - most notably showing successful data selection from the Open X-Embodiment datasets-demonstrating consistent gains in success rates and superior performance over multiple baselines. Our results underscore the importance of end-to-end, performance-aware data selection for unlocking the potential of large prior datasets in robotics. More information at https://robin-lab.cs.utexas.edu/datamodels4imitation/",
+    "pdf_url": "https://arxiv.org/pdf/2505.09603v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.LG"
+    ],
+    "published": "2025-05-14",
+    "updated": "2025-05-14T17:55:10+00:00"
+  },
+  "2505.02152v2": {
+    "id": "2505.02152v2",
+    "title": "Interleave-VLA: Enhancing Robot Manipulation with Interleaved Image-Text Instructions",
+    "authors": [
+      "Cunxin Fan",
+      "Xiaosong Jia",
+      "Yihang Sun",
+      "Yixiao Wang",
+      "Jianglan Wei",
+      "Ziyang Gong",
+      "Xiangyu Zhao",
+      "Masayoshi Tomizuka",
+      "Xue Yang",
+      "Junchi Yan",
+      "Mingyu Ding"
+    ],
+    "summary": "The rise of foundation models paves the way for generalist robot policies in the physical world. Existing methods relying on text-only instructions often struggle to generalize to unseen scenarios. We argue that interleaved image-text inputs offer richer and less biased context and enable robots to better handle unseen tasks with more versatile human-robot interaction. Building on this insight, Interleave-VLA, the first robot learning paradigm capable of comprehending interleaved image-text instructions and directly generating continuous action sequences in the physical world, is introduced. It offers a natural, flexible, and model-agnostic paradigm that extends state-of-the-art vision-language-action (VLA) models with minimal modifications while achieving strong zero-shot generalization. Interleave-VLA also includes an automatic pipeline that converts text instructions from Open X-Embodiment into interleaved image-text instructions, resulting in a large-scale real-world interleaved embodied dataset with 210k episodes. Comprehensive evaluation in simulation and the real world shows that Interleave-VLA offers two major benefits: (1) improves out-of-domain generalization to unseen objects by 2x compared to text input baselines, (2) supports flexible task interfaces and diverse instructions in a zero-shot manner, such as hand-drawn sketches. We attribute Interleave-VLA's strong zero-shot capability to the use of instruction images, which effectively mitigate hallucinations, and the inclusion of heterogeneous multimodal datasets, enriched with Internet-sourced images, offering potential for scalability. More information is available at https://interleave-vla.github.io/Interleave-VLA-Anonymous/",
+    "pdf_url": "https://arxiv.org/pdf/2505.02152v2",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2025-05-04",
+    "updated": "2025-10-08T15:41:50+00:00"
+  },
+  "2504.08581v1": {
+    "id": "2504.08581v1",
+    "title": "FMLGS: Fast Multilevel Language Embedded Gaussians for Part-level Interactive Agents",
+    "authors": [
+      "Xin Tan",
+      "Yuzhou Ji",
+      "He Zhu",
+      "Yuan Xie"
+    ],
+    "summary": "The semantically interactive radiance field has long been a promising backbone for 3D real-world applications, such as embodied AI to achieve scene understanding and manipulation. However, multi-granularity interaction remains a challenging task due to the ambiguity of language and degraded quality when it comes to queries upon object components. In this work, we present FMLGS, an approach that supports part-level open-vocabulary query within 3D Gaussian Splatting (3DGS). We propose an efficient pipeline for building and querying consistent object- and part-level semantics based on Segment Anything Model 2 (SAM2). We designed a semantic deviation strategy to solve the problem of language ambiguity among object parts, which interpolates the semantic features of fine-grained targets for enriched information. Once trained, we can query both objects and their describable parts using natural language. Comparisons with other state-of-the-art methods prove that our method can not only better locate specified part-level targets, but also achieve first-place performance concerning both speed and accuracy, where FMLGS is 98 x faster than LERF, 4 x faster than LangSplat and 2.5 x faster than LEGaussians. Meanwhile, we further integrate FMLGS as a virtual agent that can interactively navigate through 3D scenes, locate targets, and respond to user demands through a chat interface, which demonstrates the potential of our work to be further expanded and applied in the future.",
+    "pdf_url": "https://arxiv.org/pdf/2504.08581v1",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV"
+    ],
+    "published": "2025-04-11",
+    "updated": "2025-04-11T14:33:27+00:00"
+  },
+  "2503.14526v1": {
+    "id": "2503.14526v1",
+    "title": "ReBot: Scaling Robot Learning with Real-to-Sim-to-Real Robotic Video Synthesis",
+    "authors": [
+      "Yu Fang",
+      "Yue Yang",
+      "Xinghao Zhu",
+      "Kaiyuan Zheng",
+      "Gedas Bertasius",
+      "Daniel Szafir",
+      "Mingyu Ding"
+    ],
+    "summary": "Vision-language-action (VLA) models present a promising paradigm by training policies directly on real robot datasets like Open X-Embodiment. However, the high cost of real-world data collection hinders further data scaling, thereby restricting the generalizability of VLAs. In this paper, we introduce ReBot, a novel real-to-sim-to-real approach for scaling real robot datasets and adapting VLA models to target domains, which is the last-mile deployment challenge in robot manipulation. Specifically, ReBot replays real-world robot trajectories in simulation to diversify manipulated objects (real-to-sim), and integrates the simulated movements with inpainted real-world background to synthesize physically realistic and temporally consistent robot videos (sim-to-real). Our approach has several advantages: 1) it enjoys the benefit of real data to minimize the sim-to-real gap; 2) it leverages the scalability of simulation; and 3) it can generalize a pretrained VLA to a target domain with fully automated data pipelines. Extensive experiments in both simulation and real-world environments show that ReBot significantly enhances the performance and robustness of VLAs. For example, in SimplerEnv with the WidowX robot, ReBot improved the in-domain performance of Octo by 7.2% and OpenVLA by 21.8%, and out-of-domain generalization by 19.9% and 9.4%, respectively. For real-world evaluation with a Franka robot, ReBot increased the success rates of Octo by 17% and OpenVLA by 20%. More information can be found at: https://yuffish.github.io/rebot/",
+    "pdf_url": "https://arxiv.org/pdf/2503.14526v1",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV",
+      "cs.GR",
+      "cs.RO"
+    ],
+    "published": "2025-03-15",
+    "updated": "2025-03-15T16:47:25+00:00"
+  },
+  "2503.06669v4": {
+    "id": "2503.06669v4",
+    "title": "AgiBot World Colosseo: A Large-scale Manipulation Platform for Scalable and Intelligent Embodied Systems",
+    "authors": [
+      "AgiBot-World-Contributors",
+      "Qingwen Bu",
+      "Jisong Cai",
+      "Li Chen",
+      "Xiuqi Cui",
+      "Yan Ding",
+      "Siyuan Feng",
+      "Shenyuan Gao",
+      "Xindong He",
+      "Xuan Hu",
+      "Xu Huang",
+      "Shu Jiang",
+      "Yuxin Jiang",
+      "Cheng Jing",
+      "Hongyang Li",
+      "Jialu Li",
+      "Chiming Liu",
+      "Yi Liu",
+      "Yuxiang Lu",
+      "Jianlan Luo",
+      "Ping Luo",
+      "Yao Mu",
+      "Yuehan Niu",
+      "Yixuan Pan",
+      "Jiangmiao Pang",
+      "Yu Qiao",
+      "Guanghui Ren",
+      "Cheng Ruan",
+      "Jiaqi Shan",
+      "Yongjian Shen",
+      "Chengshi Shi",
+      "Mingkang Shi",
+      "Modi Shi",
+      "Chonghao Sima",
+      "Jianheng Song",
+      "Huijie Wang",
+      "Wenhao Wang",
+      "Dafeng Wei",
+      "Chengen Xie",
+      "Guo Xu",
+      "Junchi Yan",
+      "Cunbiao Yang",
+      "Lei Yang",
+      "Shukai Yang",
+      "Maoqing Yao",
+      "Jia Zeng",
+      "Chi Zhang",
+      "Qinglin Zhang",
+      "Bin Zhao",
+      "Chengyue Zhao",
+      "Jiaqi Zhao",
+      "Jianchao Zhu"
+    ],
+    "summary": "We explore how scalable robot data can address real-world challenges for generalized robotic manipulation. Introducing AgiBot World, a large-scale platform comprising over 1 million trajectories across 217 tasks in five deployment scenarios, we achieve an order-of-magnitude increase in data scale compared to existing datasets. Accelerated by a standardized collection pipeline with human-in-the-loop verification, AgiBot World guarantees high-quality and diverse data distribution. It is extensible from grippers to dexterous hands and visuo-tactile sensors for fine-grained skill acquisition. Building on top of data, we introduce Genie Operator-1 (GO-1), a novel generalist policy that leverages latent action representations to maximize data utilization, demonstrating predictable performance scaling with increased data volume. Policies pre-trained on our dataset achieve an average performance improvement of 30% over those trained on Open X-Embodiment, both in in-domain and out-of-distribution scenarios. GO-1 exhibits exceptional capability in real-world dexterous and long-horizon tasks, achieving over 60% success rate on complex tasks and outperforming prior RDT approach by 32%. By open-sourcing the dataset, tools, and models, we aim to democratize access to large-scale, high-quality robot data, advancing the pursuit of scalable and general-purpose intelligence.",
+    "pdf_url": "https://arxiv.org/pdf/2503.06669v4",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2025-03-09",
+    "updated": "2025-08-04T04:50:21+00:00"
+  },
+  "2412.10345v3": {
+    "id": "2412.10345v3",
+    "title": "TraceVLA: Visual Trace Prompting Enhances Spatial-Temporal Awareness for Generalist Robotic Policies",
+    "authors": [
+      "Ruijie Zheng",
+      "Yongyuan Liang",
+      "Shuaiyi Huang",
+      "Jianfeng Gao",
+      "Hal Daum¨¦",
+      "Andrey Kolobov",
+      "Furong Huang",
+      "Jianwei Yang"
+    ],
+    "summary": "Although large vision-language-action (VLA) models pretrained on extensive robot datasets offer promising generalist policies for robotic learning, they still struggle with spatial-temporal dynamics in interactive robotics, making them less effective in handling complex tasks, such as manipulation. In this work, we introduce visual trace prompting, a simple yet effective approach to facilitate VLA models' spatial-temporal awareness for action prediction by encoding state-action trajectories visually. We develop a new TraceVLA model by finetuning OpenVLA on our own collected dataset of 150K robot manipulation trajectories using visual trace prompting. Evaluations of TraceVLA across 137 configurations in SimplerEnv and 4 tasks on a physical WidowX robot demonstrate state-of-the-art performance, outperforming OpenVLA by 10% on SimplerEnv and 3.5x on real-robot tasks and exhibiting robust generalization across diverse embodiments and scenarios. To further validate the effectiveness and generality of our method, we present a compact VLA model based on 4B Phi-3-Vision, pretrained on the Open-X-Embodiment and finetuned on our dataset, rivals the 7B OpenVLA baseline while significantly improving inference efficiency.",
+    "pdf_url": "https://arxiv.org/pdf/2412.10345v3",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI"
+    ],
+    "published": "2024-12-13",
+    "updated": "2025-06-05T21:26:08+00:00"
+  },
+  "2411.09153v1": {
+    "id": "2411.09153v1",
+    "title": "VidMan: Exploiting Implicit Dynamics from Video Diffusion Model for Effective Robot Manipulation",
+    "authors": [
+      "Youpeng Wen",
+      "Junfan Lin",
+      "Yi Zhu",
+      "Jianhua Han",
+      "Hang Xu",
+      "Shen Zhao",
+      "Xiaodan Liang"
+    ],
+    "summary": "Recent advancements utilizing large-scale video data for learning video generation models demonstrate significant potential in understanding complex physical dynamics. It suggests the feasibility of leveraging diverse robot trajectory data to develop a unified, dynamics-aware model to enhance robot manipulation. However, given the relatively small amount of available robot data, directly fitting data without considering the relationship between visual observations and actions could lead to suboptimal data utilization. To this end, we propose VidMan (Video Diffusion for Robot Manipulation), a novel framework that employs a two-stage training mechanism inspired by dual-process theory from neuroscience to enhance stability and improve data utilization efficiency. Specifically, in the first stage, VidMan is pre-trained on the Open X-Embodiment dataset (OXE) for predicting future visual trajectories in a video denoising diffusion manner, enabling the model to develop a long horizontal awareness of the environment's dynamics. In the second stage, a flexible yet effective layer-wise self-attention adapter is introduced to transform VidMan into an efficient inverse dynamics model that predicts action modulated by the implicit dynamics knowledge via parameter sharing. Our VidMan framework outperforms state-of-the-art baseline model GR-1 on the CALVIN benchmark, achieving a 11.7% relative improvement, and demonstrates over 9% precision gains on the OXE small-scale dataset. These results provide compelling evidence that world models can significantly enhance the precision of robot action prediction. Codes and models will be public.",
+    "pdf_url": "https://arxiv.org/pdf/2411.09153v1",
+    "primary_category": "cs.CV",
+    "categories": [
+      "cs.CV",
+      "cs.RO"
+    ],
+    "published": "2024-11-14",
+    "updated": "2024-11-14T03:13:26+00:00"
+  },
+  "2411.05619v1": {
+    "id": "2411.05619v1",
+    "title": "WHALE: Towards Generalizable and Scalable World Models for Embodied Decision-making",
+    "authors": [
+      "Zhilong Zhang",
+      "Ruifeng Chen",
+      "Junyin Ye",
+      "Yihao Sun",
+      "Pengyuan Wang",
+      "Jingcheng Pang",
+      "Kaiyuan Li",
+      "Tianshuo Liu",
+      "Haoxin Lin",
+      "Yang Yu",
+      "Zhi-Hua Zhou"
+    ],
+    "summary": "World models play a crucial role in decision-making within embodied environments, enabling cost-free explorations that would otherwise be expensive in the real world. To facilitate effective decision-making, world models must be equipped with strong generalizability to support faithful imagination in out-of-distribution (OOD) regions and provide reliable uncertainty estimation to assess the credibility of the simulated experiences, both of which present significant challenges for prior scalable approaches. This paper introduces WHALE, a framework for learning generalizable world models, consisting of two key techniques: behavior-conditioning and retracing-rollout. Behavior-conditioning addresses the policy distribution shift, one of the primary sources of the world model generalization error, while retracing-rollout enables efficient uncertainty estimation without the necessity of model ensembles. These techniques are universal and can be combined with any neural network architecture for world model learning. Incorporating these two techniques, we present Whale-ST, a scalable spatial-temporal transformer-based world model with enhanced generalizability. We demonstrate the superiority of Whale-ST in simulation tasks by evaluating both value estimation accuracy and video generation fidelity. Additionally, we examine the effectiveness of our uncertainty estimation technique, which enhances model-based policy optimization in fully offline scenarios. Furthermore, we propose Whale-X, a 414M parameter world model trained on 970K trajectories from Open X-Embodiment datasets. We show that Whale-X exhibits promising scalability and strong generalizability in real-world manipulation scenarios using minimal demonstrations.",
+    "pdf_url": "https://arxiv.org/pdf/2411.05619v1",
+    "primary_category": "cs.LG",
+    "categories": [
+      "cs.LG"
+    ],
+    "published": "2024-11-08",
+    "updated": "2024-11-08T15:01:27+00:00"
+  },
+  "2411.05821v2": {
+    "id": "2411.05821v2",
+    "title": "Benchmarking Vision, Language, & Action Models on Robotic Learning Tasks",
+    "authors": [
+      "Pranav Guruprasad",
+      "Harshvardhan Sikka",
+      "Jaewoo Song",
+      "Yangyue Wang",
+      "Paul Pu Liang"
+    ],
+    "summary": "Vision-language-action (VLA) models represent a promising direction for developing general-purpose robotic systems, demonstrating the ability to combine visual understanding, language comprehension, and action generation. However, systematic evaluation of these models across diverse robotic tasks remains limited. In this work, we present a comprehensive evaluation framework and benchmark suite for assessing VLA models. We profile three state-of-the-art VLM and VLAs - GPT-4o, OpenVLA, and JAT - across 20 diverse datasets from the Open-X-Embodiment collection, evaluating their performance on various manipulation tasks. Our analysis reveals several key insights: 1. current VLA models show significant variation in performance across different tasks and robot platforms, with GPT-4o demonstrating the most consistent performance through sophisticated prompt engineering, 2. all models struggle with complex manipulation tasks requiring multi-step planning, and 3. model performance is notably sensitive to action space characteristics and environmental factors. We release our evaluation framework and findings to facilitate systematic assessment of future VLA models and identify critical areas for improvement in the development of general purpose robotic systems.",
+    "pdf_url": "https://arxiv.org/pdf/2411.05821v2",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2024-11-04",
+    "updated": "2024-12-08T06:54:43+00:00"
+  },
+  "2411.00508v4": {
+    "id": "2411.00508v4",
+    "title": "CLIP-RT: Learning Language-Conditioned Robotic Policies from Natural Language Supervision",
+    "authors": [
+      "Gi-Cheon Kang",
+      "Junghyun Kim",
+      "Kyuhwan Shim",
+      "Jun Ki Lee",
+      "Byoung-Tak Zhang"
+    ],
+    "summary": "Teaching robots desired skills in real-world environments remains challenging, especially for non-experts. A key bottleneck is that collecting robotic data often requires expertise or specialized hardware, limiting accessibility and scalability. We posit that natural language offers an intuitive and accessible interface for robot learning. To this end, we study two aspects: (1) enabling non-experts to collect robotic data through natural language supervision (e.g., \"move the arm to the right\") and (2) training robot policies directly from this supervision. Specifically, we introduce a data collection framework that collects robot demonstrations based on natural language supervision and further augments these demonstrations. We then present CLIP-RT, a new vision-language-action (VLA) model that learns language-conditioned visuomotor policies from this supervision. CLIP-RT adapts the pretrained CLIP model and learns to predict language-based motion primitives via contrastive imitation learning. We train CLIP-RT on the Open X-Embodiment dataset and finetune it on in-domain data collected by our framework. In real-world evaluations, CLIP-RT demonstrates strong capabilities in learning novel manipulation skills, outperforming OpenVLA (7B parameters) by 24% in average success rates, while using 7x fewer parameters (1B). We further assess CLIP-RT's capabilities in few-shot generalization and collaborative scenarios involving large pretrained models or humans. In simulated environments, CLIP-RT also yields strong performance, achieving a 93.1% average success rate on the LIBERO benchmark with an inference throughput of 163 Hz.",
+    "pdf_url": "https://arxiv.org/pdf/2411.00508v4",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2024-11-01",
+    "updated": "2025-05-10T06:10:30+00:00"
+  },
+  "2409.03403v2": {
+    "id": "2409.03403v2",
+    "title": "RoVi-Aug: Robot and Viewpoint Augmentation for Cross-Embodiment Robot Learning",
+    "authors": [
+      "Lawrence Yunliang Chen",
+      "Chenfeng Xu",
+      "Karthik Dharmarajan",
+      "Muhammad Zubair Irshad",
+      "Richard Cheng",
+      "Kurt Keutzer",
+      "Masayoshi Tomizuka",
+      "Quan Vuong",
+      "Ken Goldberg"
+    ],
+    "summary": "Scaling up robot learning requires large and diverse datasets, and how to efficiently reuse collected data and transfer policies to new embodiments remains an open question. Emerging research such as the Open-X Embodiment (OXE) project has shown promise in leveraging skills by combining datasets including different robots. However, imbalances in the distribution of robot types and camera angles in many datasets make policies prone to overfit. To mitigate this issue, we propose RoVi-Aug, which leverages state-of-the-art image-to-image generative models to augment robot data by synthesizing demonstrations with different robots and camera views. Through extensive physical experiments, we show that, by training on robot- and viewpoint-augmented data, RoVi-Aug can zero-shot deploy on an unseen robot with significantly different camera angles. Compared to test-time adaptation algorithms such as Mirage, RoVi-Aug requires no extra processing at test time, does not assume known camera angles, and allows policy fine-tuning. Moreover, by co-training on both the original and augmented robot datasets, RoVi-Aug can learn multi-robot and multi-task policies, enabling more efficient transfer between robots and skills and improving success rates by up to 30%. Project website: https://rovi-aug.github.io.",
+    "pdf_url": "https://arxiv.org/pdf/2409.03403v2",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO"
+    ],
+    "published": "2024-09-05",
+    "updated": "2024-09-09T03:11:19+00:00"
+  },
+  "2408.14037v1": {
+    "id": "2408.14037v1",
+    "title": "Re-Mix: Optimizing Data Mixtures for Large Scale Imitation Learning",
+    "authors": [
+      "Joey Hejna",
+      "Chethan Bhateja",
+      "Yichen Jiang",
+      "Karl Pertsch",
+      "Dorsa Sadigh"
+    ],
+    "summary": "Increasingly large imitation learning datasets are being collected with the goal of training foundation models for robotics. However, despite the fact that data selection has been of utmost importance in vision and natural language processing, little work in robotics has questioned what data such models should actually be trained on. In this work we investigate how to weigh different subsets or ``domains'' of robotics datasets for robot foundation model pre-training. Concrete, we use distributionally robust optimization (DRO) to maximize worst-case performance across all possible downstream domains. Our method, Re-Mix, addresses the wide range of challenges that arise when applying DRO to robotics datasets including variability in action spaces and dynamics across different datasets. Re-Mix employs early stopping, action normalization, and discretization to counteract these issues. Through extensive experimentation on the largest open-source robot manipulation dataset, the Open X-Embodiment dataset, we demonstrate that data curation can have an outsized impact on downstream performance. Specifically, domain weights learned by Re-Mix outperform uniform weights by 38\\% on average and outperform human-selected weights by 32\\% on datasets used to train existing generalist robot policies, specifically the RT-X models.",
+    "pdf_url": "https://arxiv.org/pdf/2408.14037v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.LG"
+    ],
+    "published": "2024-08-26",
+    "updated": "2024-08-26T06:14:25+00:00"
+  },
+  "2406.18915v3": {
+    "id": "2406.18915v3",
+    "title": "Manipulate-Anything: Automating Real-World Robots using Vision-Language Models",
+    "authors": [
+      "Jiafei Duan",
+      "Wentao Yuan",
+      "Wilbert Pumacay",
+      "Yi Ru Wang",
+      "Kiana Ehsani",
+      "Dieter Fox",
+      "Ranjay Krishna"
+    ],
+    "summary": "Large-scale endeavors like and widespread community efforts such as Open-X-Embodiment have contributed to growing the scale of robot demonstration data. However, there is still an opportunity to improve the quality, quantity, and diversity of robot demonstration data. Although vision-language models have been shown to automatically generate demonstration data, their utility has been limited to environments with privileged state information, they require hand-designed skills, and are limited to interactions with few object instances. We propose Manipulate-Anything, a scalable automated generation method for real-world robotic manipulation. Unlike prior work, our method can operate in real-world environments without any privileged state information, hand-designed skills, and can manipulate any static object. We evaluate our method using two setups. First, Manipulate-Anything successfully generates trajectories for all 7 real-world and 14 simulation tasks, significantly outperforming existing methods like VoxPoser. Second, Manipulate-Anything's demonstrations can train more robust behavior cloning policies than training with human demonstrations, or from data generated by VoxPoser, Scaling-up, and Code-As-Policies. We believe Manipulate-Anything can be a scalable method for both generating data for robotics and solving novel tasks in a zero-shot setting. Project page: https://robot-ma.github.io/.",
+    "pdf_url": "https://arxiv.org/pdf/2406.18915v3",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.CV"
+    ],
+    "published": "2024-06-27",
+    "updated": "2024-08-29T16:07:30+00:00"
+  },
+  "2406.11815v1": {
+    "id": "2406.11815v1",
+    "title": "LLARVA: Vision-Action Instruction Tuning Enhances Robot Learning",
+    "authors": [
+      "Dantong Niu",
+      "Yuvan Sharma",
+      "Giscard Biamby",
+      "Jerome Quenum",
+      "Yutong Bai",
+      "Baifeng Shi",
+      "Trevor Darrell",
+      "Roei Herzig"
+    ],
+    "summary": "In recent years, instruction-tuned Large Multimodal Models (LMMs) have been successful at several tasks, including image captioning and visual question answering; yet leveraging these models remains an open question for robotics. Prior LMMs for robotics applications have been extensively trained on language and action data, but their ability to generalize in different settings has often been less than desired. To address this, we introduce LLARVA, a model trained with a novel instruction tuning method that leverages structured prompts to unify a range of robotic learning tasks, scenarios, and environments. Additionally, we show that predicting intermediate 2-D representations, which we refer to as \"visual traces\", can help further align vision and action spaces for robot learning. We generate 8.5M image-visual trace pairs from the Open X-Embodiment dataset in order to pre-train our model, and we evaluate on 12 different tasks in the RLBench simulator as well as a physical Franka Emika Panda 7-DoF robot. Our experiments yield strong performance, demonstrating that LLARVA - using 2-D and language representations - performs well compared to several contemporary baselines, and can generalize across various robot environments and configurations.",
+    "pdf_url": "https://arxiv.org/pdf/2406.11815v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2024-06-17",
+    "updated": "2024-06-17T17:55:29+00:00"
+  },
+  "2406.09246v3": {
+    "id": "2406.09246v3",
+    "title": "OpenVLA: An Open-Source Vision-Language-Action Model",
+    "authors": [
+      "Moo Jin Kim",
+      "Karl Pertsch",
+      "Siddharth Karamcheti",
+      "Ted Xiao",
+      "Ashwin Balakrishna",
+      "Suraj Nair",
+      "Rafael Rafailov",
+      "Ethan Foster",
+      "Grace Lam",
+      "Pannag Sanketi",
+      "Quan Vuong",
+      "Thomas Kollar",
+      "Benjamin Burchfiel",
+      "Russ Tedrake",
+      "Dorsa Sadigh",
+      "Sergey Levine",
+      "Percy Liang",
+      "Chelsea Finn"
+    ],
+    "summary": "Large policies pretrained on a combination of Internet-scale vision-language data and diverse robot demonstrations have the potential to change how we teach robots new skills: rather than training new behaviors from scratch, we can fine-tune such vision-language-action (VLA) models to obtain robust, generalizable policies for visuomotor control. Yet, widespread adoption of VLAs for robotics has been challenging as 1) existing VLAs are largely closed and inaccessible to the public, and 2) prior work fails to explore methods for efficiently fine-tuning VLAs for new tasks, a key component for adoption. Addressing these challenges, we introduce OpenVLA, a 7B-parameter open-source VLA trained on a diverse collection of 970k real-world robot demonstrations. OpenVLA builds on a Llama 2 language model combined with a visual encoder that fuses pretrained features from DINOv2 and SigLIP. As a product of the added data diversity and new model components, OpenVLA demonstrates strong results for generalist manipulation, outperforming closed models such as RT-2-X (55B) by 16.5% in absolute task success rate across 29 tasks and multiple robot embodiments, with 7x fewer parameters. We further show that we can effectively fine-tune OpenVLA for new settings, with especially strong generalization results in multi-task environments involving multiple objects and strong language grounding abilities, and outperform expressive from-scratch imitation learning methods such as Diffusion Policy by 20.4%. We also explore compute efficiency; as a separate contribution, we show that OpenVLA can be fine-tuned on consumer GPUs via modern low-rank adaptation methods and served efficiently via quantization without a hit to downstream success rate. Finally, we release model checkpoints, fine-tuning notebooks, and our PyTorch codebase with built-in support for training VLAs at scale on Open X-Embodiment datasets.",
+    "pdf_url": "https://arxiv.org/pdf/2406.09246v3",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.LG"
+    ],
+    "published": "2024-06-13",
+    "updated": "2024-09-05T19:46:34+00:00"
+  },
+  "2405.19988v3": {
+    "id": "2405.19988v3",
+    "title": "Video-Language Critic: Transferable Reward Functions for Language-Conditioned Robotics",
+    "authors": [
+      "Minttu Alakuijala",
+      "Reginald McLean",
+      "Isaac Woungang",
+      "Nariman Farsad",
+      "Samuel Kaski",
+      "Pekka Marttinen",
+      "Kai Yuan"
+    ],
+    "summary": "Natural language is often the easiest and most convenient modality for humans to specify tasks for robots. However, learning to ground language to behavior typically requires impractical amounts of diverse, language-annotated demonstrations collected on each target robot. In this work, we aim to separate the problem of what to accomplish from how to accomplish it, as the former can benefit from substantial amounts of external observation-only data, and only the latter depends on a specific robot embodiment. To this end, we propose Video-Language Critic, a reward model that can be trained on readily available cross-embodiment data using contrastive learning and a temporal ranking objective, and use it to score behavior traces from a separate actor. When trained on Open X-Embodiment data, our reward model enables 2x more sample-efficient policy training on Meta-World tasks than a sparse reward only, despite a significant domain gap. Using in-domain data but in a challenging task generalization setting on Meta-World, we further demonstrate more sample-efficient training than is possible with prior language-conditioned reward models that are either trained with binary classification, use static images, or do not leverage the temporal information present in video data.",
+    "pdf_url": "https://arxiv.org/pdf/2405.19988v3",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "cs.CL",
+      "cs.CV",
+      "cs.LG"
+    ],
+    "published": "2024-05-30",
+    "updated": "2025-09-17T01:05:56+00:00"
+  },
+  "2405.12213v2": {
+    "id": "2405.12213v2",
+    "title": "Octo: An Open-Source Generalist Robot Policy",
+    "authors": [
+      "Octo Model Team",
+      "Dibya Ghosh",
+      "Homer Walke",
+      "Karl Pertsch",
+      "Kevin Black",
+      "Oier Mees",
+      "Sudeep Dasari",
+      "Joey Hejna",
+      "Tobias Kreiman",
+      "Charles Xu",
+      "Jianlan Luo",
+      "You Liang Tan",
+      "Lawrence Yunliang Chen",
+      "Pannag Sanketi",
+      "Quan Vuong",
+      "Ted Xiao",
+      "Dorsa Sadigh",
+      "Chelsea Finn",
+      "Sergey Levine"
+    ],
+    "summary": "Large policies pretrained on diverse robot datasets have the potential to transform robotic learning: instead of training new policies from scratch, such generalist robot policies may be finetuned with only a little in-domain data, yet generalize broadly. However, to be widely applicable across a range of robotic learning scenarios, environments, and tasks, such policies need to handle diverse sensors and action spaces, accommodate a variety of commonly used robotic platforms, and finetune readily and efficiently to new domains. In this work, we aim to lay the groundwork for developing open-source, widely applicable, generalist policies for robotic manipulation. As a first step, we introduce Octo, a large transformer-based policy trained on 800k trajectories from the Open X-Embodiment dataset, the largest robot manipulation dataset to date. It can be instructed via language commands or goal images and can be effectively finetuned to robot setups with new sensory inputs and action spaces within a few hours on standard consumer GPUs. In experiments across 9 robotic platforms, we demonstrate that Octo serves as a versatile policy initialization that can be effectively finetuned to new observation and action spaces. We also perform detailed ablations of design decisions for the Octo model, from architecture to training data, to guide future research on building generalist robot models.",
+    "pdf_url": "https://arxiv.org/pdf/2405.12213v2",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.LG"
+    ],
+    "published": "2024-05-20",
+    "updated": "2024-05-26T19:55:26+00:00"
+  },
+  "2402.08570v1": {
+    "id": "2402.08570v1",
+    "title": "Online Foundation Model Selection in Robotics",
+    "authors": [
+      "Po-han Li",
+      "Oyku Selin Toprak",
+      "Aditya Narayanan",
+      "Ufuk Topcu",
+      "Sandeep Chinchali"
+    ],
+    "summary": "Foundation models have recently expanded into robotics after excelling in computer vision and natural language processing. The models are accessible in two ways: open-source or paid, closed-source options. Users with access to both face a problem when deciding between effective yet costly closed-source models and free but less powerful open-source alternatives. We call it the model selection problem. Existing supervised-learning methods are impractical due to the high cost of collecting extensive training data from closed-source models. Hence, we focus on the online learning setting where algorithms learn while collecting data, eliminating the need for large pre-collected datasets. We thus formulate a user-centric online model selection problem and propose a novel solution that combines an open-source encoder to output context and an online learning algorithm that processes this context. The encoder distills vast data distributions into low-dimensional features, i.e., the context, without additional training. The online learning algorithm aims to maximize a composite reward that includes model performance, execution time, and costs based on the context extracted from the data. It results in an improved trade-off between selecting open-source and closed-source models compared to non-contextual methods, as validated by our theoretical analysis. Experiments across language-based robotic tasks such as Waymo Open Dataset, ALFRED, and Open X-Embodiment demonstrate real-world applications of the solution. The results show that the solution significantly improves the task success rate by up to 14%.",
+    "pdf_url": "https://arxiv.org/pdf/2402.08570v1",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI",
+      "cs.LG"
+    ],
+    "published": "2024-02-13",
+    "updated": "2024-02-13T16:14:32+00:00"
+  },
+  "2312.12036v3": {
+    "id": "2312.12036v3",
+    "title": "LHManip: A Dataset for Long-Horizon Language-Grounded Manipulation Tasks in Cluttered Tabletop Environments",
+    "authors": [
+      "Federico Ceola",
+      "Lorenzo Natale",
+      "Niko S¨¹nderhauf",
+      "Krishan Rana"
+    ],
+    "summary": "Instructing a robot to complete an everyday task within our homes has been a long-standing challenge for robotics. While recent progress in language-conditioned imitation learning and offline reinforcement learning has demonstrated impressive performance across a wide range of tasks, they are typically limited to short-horizon tasks -- not reflective of those a home robot would be expected to complete. While existing architectures have the potential to learn these desired behaviours, the lack of the necessary long-horizon, multi-step datasets for real robotic systems poses a significant challenge. To this end, we present the Long-Horizon Manipulation (LHManip) dataset comprising 200 episodes, demonstrating 20 different manipulation tasks via real robot teleoperation. The tasks entail multiple sub-tasks, including grasping, pushing, stacking and throwing objects in highly cluttered environments. Each task is paired with a natural language instruction and multi-camera viewpoints for point-cloud or NeRF reconstruction. In total, the dataset comprises 176,278 observation-action pairs which form part of the Open X-Embodiment dataset. The full LHManip dataset is made publicly available at https://github.com/fedeceola/LHManip.",
+    "pdf_url": "https://arxiv.org/pdf/2312.12036v3",
+    "primary_category": "cs.RO",
+    "categories": [
+      "cs.RO",
+      "cs.AI"
+    ],
+    "published": "2023-12-19",
+    "updated": "2024-07-01T22:10:55+00:00"
+  },
+  "2310.08864v9": {
+    "id": "2310.08864v9",
+    "title": "Open X-Embodiment: Robotic Learning Datasets and RT-X Models",
+    "authors": [
+      "Open X-Embodiment Collaboration",
+      "Abby O'Neill",
+      "Abdul Rehman",
+      "Abhinav Gupta",
+      "Abhiram Maddukuri",
+      "Abhishek Gupta",
+      "Abhishek Padalkar",
+      "Abraham Lee",
+      "Acorn Pooley",
+      "Agrim Gupta",
+      "Ajay Mandlekar",
+      "Ajinkya Jain",
+      "Albert Tung",
+      "Alex Bewley",
+      "Alex Herzog",
+      "Alex Irpan",
+      "Alexander Khazatsky",
+      "Anant Rai",
+      "Anchit Gupta",
+      "Andrew Wang",
+      "Andrey Kolobov",
+      "Anikait Singh",
+      "Animesh Garg",
+      "Aniruddha Kembhavi",
+      "Annie Xie",
+      "Anthony Brohan",
+      "Antonin Raffin",
+      "Archit Sharma",
+      "Arefeh Yavary",
+      "Arhan Jain",
+      "Ashwin Balakrishna",
+      "Ayzaan Wahid",
+      "Ben Burgess-Limerick",
+      "Beomjoon Kim"

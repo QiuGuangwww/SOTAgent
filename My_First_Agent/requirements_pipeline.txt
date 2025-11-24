@@ -1,0 +1,16 @@
+# Multi-Agent Pipeline MVP 依赖
+
+# PDF 处理
+PyMuPDF>=1.23.0  # fitz - PDF 文本提取
+pdfplumber>=0.10.0  # 表格提取
+
+# 搜索
+arxiv>=2.1.0  # arXiv 搜索（已有）
+scholarly>=1.7.0  # Google Scholar 搜索（可选）
+
+# HTTP 请求
+requests>=2.31.0  # PDF 下载
+
+# 数据处理
+# json, datetime, re, os, typing - Python 标准库
+

@@ -1,0 +1,77 @@
+{
+  "2206.10552v2": {
+    "title": "Vicinity Vision Transformer",
+    "authors": [
+      "Weixuan Sun",
+      "Zhen Qin",
+      "Hui Deng",
+      "Jianyuan Wang",
+      "Yi Zhang",
+      "Kaihao Zhang",
+      "Nick Barnes",
+      "Stan Birchfield",
+      "Lingpeng Kong",
+      "Yiran Zhong"
+    ],
+    "summary": "Vision transformers have shown great success on numerous computer vision tasks. However, its central component, softmax attention, prohibits vision transformers from scaling up to high-resolution images, due to both the computational complexity and memory footprint being quadratic. Although linear attention was introduced in natural language processing (NLP) tasks to mitigate a similar issue, directly applying existing linear attention to vision transformers may not lead to satisfactory results. We investigate this problem and find that computer vision tasks focus more on local information compared with NLP tasks. Based on this observation, we present a Vicinity Attention that introduces a locality bias to vision transformers with linear complexity. Specifically, for each image patch, we adjust its attention weight based on its 2D Manhattan distance measured by its neighbouring patches. In this case, the neighbouring patches will receive stronger attention than far-away patches. Moreover, since our Vicinity Attention requires the token length to be much larger than the feature dimension to show its efficiency advantages, we further propose a new Vicinity Vision Transformer (VVT) structure to reduce the feature dimension without degenerating the accuracy. We perform extensive experiments on the CIFAR100, ImageNet1K, and ADE20K datasets to validate the effectiveness of our method. Our method has a slower growth rate of GFlops than previous transformer-based and convolution-based networks when the input resolution increases. In particular, our approach achieves state-of-the-art image classification accuracy with 50% fewer parameters than previous methods.",
+    "pdf_url": "https://arxiv.org/pdf/2206.10552v2",
+    "published": "2022-06-21"
+  },
+  "2108.01390v5": {
+    "title": "Evo-ViT: Slow-Fast Token Evolution for Dynamic Vision Transformer",
+    "authors": [
+      "Yifan Xu",
+      "Zhijie Zhang",
+      "Mengdan Zhang",
+      "Kekai Sheng",
+      "Ke Li",
+      "Weiming Dong",
+      "Liqing Zhang",
+      "Changsheng Xu",
+      "Xing Sun"
+    ],
+    "summary": "Vision transformers (ViTs) have recently received explosive popularity, but the huge computational cost is still a severe issue. Since the computation complexity of ViT is quadratic with respect to the input sequence length, a mainstream paradigm for computation reduction is to reduce the number of tokens. Existing designs include structured spatial compression that uses a progressive shrinking pyramid to reduce the computations of large feature maps, and unstructured token pruning that dynamically drops redundant tokens. However, the limitation of existing token pruning lies in two folds: 1) the incomplete spatial structure caused by pruning is not compatible with structured spatial compression that is commonly used in modern deep-narrow transformers; 2) it usually requires a time-consuming pre-training procedure. To tackle the limitations and expand the applicable scenario of token pruning, we present Evo-ViT, a self-motivated slow-fast token evolution approach for vision transformers. Specifically, we conduct unstructured instance-wise token selection by taking advantage of the simple and effective global class attention that is native to vision transformers. Then, we propose to update the selected informative tokens and uninformative tokens with different computation paths, namely, slow-fast updating. Since slow-fast updating mechanism maintains the spatial structure and information flow, Evo-ViT can accelerate vanilla transformers of both flat and deep-narrow structures from the very beginning of the training process. Experimental results demonstrate that our method significantly reduces the computational cost of vision transformers while maintaining comparable performance on image classification.",
+    "pdf_url": "https://arxiv.org/pdf/2108.01390v5",
+    "published": "2021-08-03"
+  },
+  "2202.10108v2": {
+    "title": "ViTAEv2: Vision Transformer Advanced by Exploring Inductive Bias for Image Recognition and Beyond",
+    "authors": [
+      "Qiming Zhang",
+      "Yufei Xu",
+      "Jing Zhang",
+      "Dacheng Tao"
+    ],
+    "summary": "Vision transformers have shown great potential in various computer vision tasks owing to their strong capability to model long-range dependency using the self-attention mechanism. Nevertheless, they treat an image as a 1D sequence of visual tokens, lacking an intrinsic inductive bias (IB) in modeling local visual structures and dealing with scale variance, which is instead learned implicitly from large-scale training data with longer training schedules. In this paper, we propose a Vision Transformer Advanced by Exploring intrinsic IB from convolutions, i.e., ViTAE. Technically, ViTAE has several spatial pyramid reduction modules to downsample and embed the input image into tokens with rich multi-scale context using multiple convolutions with different dilation rates. In this way, it acquires an intrinsic scale invariance IB and can learn robust feature representation for objects at various scales. Moreover, in each transformer layer, ViTAE has a convolution block parallel to the multi-head self-attention module, whose features are fused and fed into the feed-forward network. Consequently, it has the intrinsic locality IB and is able to learn local features and global dependencies collaboratively. The proposed two kinds of cells are stacked in both isotropic and multi-stage manners to formulate two families of ViTAE models, i.e., the vanilla ViTAE and ViTAEv2. Experiments on the ImageNet dataset as well as downstream tasks on the MS COCO, ADE20K, and AP10K datasets validate the superiority of our models over the baseline transformer models and concurrent works. Besides, we scale up our ViTAE model to 644M parameters and obtain the state-of-the-art classification performance, i.e., 88.5% Top-1 classification accuracy on ImageNet validation set and the best 91.2% Top-1 accuracy on ImageNet real validation set, without using extra private data.",
+    "pdf_url": "https://arxiv.org/pdf/2202.10108v2",
+    "published": "2022-02-21"
+  },
+  "1909.10225v1": {
+    "title": "WiCV 2019: The Sixth Women In Computer Vision Workshop",
+    "authors": [
+      "Irene Amerini",
+      "Elena Balashova",
+      "Sayna Ebrahimi",
+      "Kathryn Leonard",
+      "Arsha Nagrani",
+      "Amaia Salvador"
+    ],
+    "summary": "In this paper we present the Women in Computer Vision Workshop - WiCV 2019, organized in conjunction with CVPR 2019. This event is meant for increasing the visibility and inclusion of women researchers in the computer vision field. Computer vision and machine learning have made incredible progress over the past years, but the number of female researchers is still low both in academia and in industry. WiCV is organized especially for the following reason: to raise visibility of female researchers, to increase collaborations between them, and to provide mentorship to female junior researchers in the field. In this paper, we present a report of trends over the past years, along with a summary of statistics regarding presenters, attendees, and sponsorship for the current workshop.",
+    "pdf_url": "https://arxiv.org/pdf/1909.10225v1",
+    "published": "2019-09-23"
+  },
+  "2106.02277v1": {
+    "title": "Glance-and-Gaze Vision Transformer",
+    "authors": [
+      "Qihang Yu",
+      "Yingda Xia",
+      "Yutong Bai",
+      "Yongyi Lu",
+      "Alan Yuille",
+      "Wei Shen"
+    ],
+    "summary": "Recently, there emerges a series of vision Transformers, which show superior performance with a more compact model size than conventional convolutional neural networks, thanks to the strong ability of Transformers to model long-range dependencies. However, the advantages of vision Transformers also come with a price: Self-attention, the core part of Transformer, has a quadratic complexity to the input sequence length. This leads to a dramatic increase of computation and memory cost with the increase of sequence length, thus introducing difficulties when applying Transformers to the vision tasks that require dense predictions based on high-resolution feature maps. In this paper, we propose a new vision Transformer, named Glance-and-Gaze Transformer (GG-Transformer), to address the aforementioned issues. It is motivated by the Glance and Gaze behavior of human beings when recognizing objects in natural scenes, with the ability to efficiently model both long-range dependencies and local context. In GG-Transformer, the Glance and Gaze behavior is realized by two parallel branches: The Glance branch is achieved by performing self-attention on the adaptively-dilated partitions of the input, which leads to a linear complexity while still enjoying a global receptive field; The Gaze branch is implemented by a simple depth-wise convolutional layer, which compensates local image context to the features obtained by the Glance mechanism. We empirically demonstrate our method achieves consistently superior performance over previous state-of-the-art Transformers on various vision tasks and benchmarks. The codes and models will be made available at https://github.com/yucornetto/GG-Transformer.",
+    "pdf_url": "https://arxiv.org/pdf/2106.02277v1",
+    "published": "2021-06-04"
+  }
+}
