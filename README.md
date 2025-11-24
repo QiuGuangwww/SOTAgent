@@ -3,7 +3,7 @@
 <img src="https://pic.qiuguang.top/1_00000.7i0tjvunlu.webp" alt="SOTAgent Logo" width="400"/>
 
 
-**Intelligent SOTA Model Search Assistant**
+# Intelligent SOTA Model Search Assistant
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
