@@ -244,6 +244,7 @@ The Agent provides the following main tools:
 | `run_trustworthy_sota_search` | Trusted SOTA search (Pipeline) |
 
 </div>
+
 ---
 
 ## ⚙️ Configuration
@@ -350,4 +351,5 @@ For questions or suggestions, please contact:
 Last update: 2025.11.25
 
 </div>
+
 
