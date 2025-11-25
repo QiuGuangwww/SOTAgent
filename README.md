@@ -228,6 +228,7 @@ SOTAgent/
 ## 🔧 Core Tool Functions
 
 The Agent provides the following main tools:
+<div align="center">
 
 | Tool Function | Description |
 |--------------|-------------|
@@ -242,6 +243,7 @@ The Agent provides the following main tools:
 | `check_name_type` | Check if a name is a dataset or model |
 | `run_trustworthy_sota_search` | Trusted SOTA search (Pipeline) |
 
+</div>
 ---
 
 ## ⚙️ Configuration
@@ -336,7 +338,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions or suggestions, please contact:
 
-- 📮 Email: [YinZhaokai2006@outlook.com](mailto:YinZhaokai2006@outlook.com)
+- 📮 Email: [qiuguang738@gmail.com](mailto:qiuguang738@gmail.com)
 - 🐛 Issues: [GitHub Issues](https://github.com/QiuGuangwww/SOTAgent/issues)
 
 ---
@@ -348,3 +350,4 @@ For questions or suggestions, please contact:
 Last update: 2025.11.25
 
 </div>
+
