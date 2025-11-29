@@ -228,6 +228,7 @@ SOTAgent/
 ## 🔧 Core Tool Functions
 
 The Agent provides the following main tools:
+<div align="center">
 
 | Tool Function | Description |
 |--------------|-------------|
@@ -241,6 +242,8 @@ The Agent provides the following main tools:
 | `list_common_benchmarks_with_sota` | List common benchmarks with their SOTA |
 | `check_name_type` | Check if a name is a dataset or model |
 | `run_trustworthy_sota_search` | Trusted SOTA search (Pipeline) |
+
+</div>
 
 ---
 
@@ -336,7 +339,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions or suggestions, please contact:
 
-- 📮 Email: [YinZhaokai2006@outlook.com](mailto:YinZhaokai2006@outlook.com)
+- 📮 Email: [qiuguang738@gmail.com](mailto:qiuguang738@gmail.com)
 - 🐛 Issues: [GitHub Issues](https://github.com/QiuGuangwww/SOTAgent/issues)
 
 ---
@@ -349,24 +352,4 @@ Last update: 2025.11.25
 
 </div>
 
----
 
-### 📁 Packaging Avatar Image
-
-To ensure the chat avatar PNG is included in the Docker image, copy your image into the application directory before building:
-
-```bash
-mkdir -p Agent-Test/assets
-copy "人工智能_ 人工智能_ 自动机_ 脑_ 数码产品_ 机器人学_爱给网_aigei_com.png" Agent-Test\assets\avatar.png
-```
-
-Search order used at runtime:
-1. `Agent-Test/assets/avatar.png`
-2. `Agent-Test/avatar.png`
-3. Repository root original long filename
-4. Fallback emoji 🤖 if none exist
-
-Rebuild after copying to include the resource:
-```bash
-docker build -t yourname/sota-agent:latest .
-```
