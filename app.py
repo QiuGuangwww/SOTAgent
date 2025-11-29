@@ -1,40 +1,230 @@
 """
-SotaAgent Gradio Web应用
-使用Gradio封装SotaAgent，提供Web界面进行交互
+SotaAgent Gradio Web应用（单一浅色主题 / 全宽布局）
 """
 import asyncio
 import json
 import os
 import sys
-from typing import Tuple, Optional
+import time
+from typing import Optional
 
 import gradio as gr
-from google.adk.runners import Runner
-from google.adk.sessions.in_memory_session_service import InMemorySessionService
-from google.genai import types as genai_types
+import requests
+import random
+try:
+    from google.genai import types as genai_types  # type: ignore
+except Exception as _genai_err:
+    print(f"[Warn] 导入 google.genai 失败，将使用简易消息包装: {_genai_err}")
+    class _FallbackPart:
+        def __init__(self, text: str):
+            self.text = text
+    class _FallbackContent:
+        def __init__(self, role: str, parts):
+            self.role = role
+            self.parts = parts
+    class genai_types:  # type: ignore
+        Content = _FallbackContent
+        Part = _FallbackPart
+
+# 尝试导入 ADK Runner，失败则回退到简易 Runner 实现
+USE_ADK = True
+try:
+    from google.adk.runners import Runner  # type: ignore
+    from google.adk.sessions.in_memory_session_service import InMemorySessionService  # type: ignore
+except Exception as _adk_import_err:
+    print(f"[Warn] 导入 google.adk 失败，将使用简易 Runner：{_adk_import_err}")
+    USE_ADK = False
+    InMemorySessionService = None  # type: ignore
+
+try:
+    from google.adk.models.lite_llm import LiteLlm  # type: ignore
+except Exception as _lite_import_err:
+    LiteLlm = None  # type: ignore
+    print(f"[Warn] 无法导入 LiteLlm: {_lite_import_err}. 将跳过动态模型切换。")
+try:
+    from google.adk.models.lite_llm import LiteLlm  # type: ignore
+except Exception as _lite_import_err:
+    LiteLlm = None  # type: ignore
+    print(f"[Warn] 无法导入 LiteLlm: {_lite_import_err}. 将跳过动态模型切换。")
 
 # 添加项目路径到sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 导入agent
 from My_First_Agent.agent import root_agent
+try:
+    from My_First_Agent.agent import PIPELINE_AVAILABLE
+except ImportError:
+    PIPELINE_AVAILABLE = False
+
+# 兼容补丁：绕过 Gradio 在生成 API Schema 时对布尔 Schema 的处理异常
+# 报错：TypeError: argument of type 'bool' is not iterable（来源 gradio_client.utils.get_type）
+try:
+    from gradio_client import utils as _gradio_client_utils  # type: ignore
+
+    _orig_get_type = getattr(_gradio_client_utils, "get_type", None)
+    _orig_json_to_py = getattr(_gradio_client_utils, "_json_schema_to_python_type", None)
+
+    if callable(_orig_get_type):
+        def _safe_get_type(schema):  # type: ignore
+            if isinstance(schema, bool):
+                return "any"
+            try:
+                return _orig_get_type(schema)  # type: ignore
+            except Exception:
+                return "any"
+
+        _gradio_client_utils.get_type = _safe_get_type  # type: ignore
+
+    if callable(_orig_json_to_py):
+        def _safe_json_schema_to_python_type(schema, defs=None):  # type: ignore
+            if isinstance(schema, bool):
+                return "any"
+            try:
+                return _orig_json_to_py(schema, defs)  # type: ignore
+            except Exception:
+                return "any"
+
+        _gradio_client_utils._json_schema_to_python_type = _safe_json_schema_to_python_type  # type: ignore
+except Exception as _patch_err:
+    print(f"[Gradio-Compat] Schema 兼容补丁加载失败：{_patch_err}")
+
+def charge_photon(event_value, sku_id, request: gr.Request):
+    """
+    光子扣费接口
+    """
+    # 优先取 Cookie 中的 accessKey
+    cookies = request.cookies
+    access_key = cookies.get("appAccessKey")
+    client_name = cookies.get("clientName")
+    
+    # Fallback for dev
+    DEV_ACCESS_KEY = os.getenv("DEV_ACCESS_KEY", "")
+    CLIENT_NAME = os.getenv("CLIENT_NAME", "")
+    
+    if not access_key:
+        access_key = DEV_ACCESS_KEY
+    
+    if not client_name:
+        client_name = CLIENT_NAME
+
+    source = "未知"
+    if cookies.get("appAccessKey"):
+        source = "来自用户 Cookie"
+    elif DEV_ACCESS_KEY and access_key == DEV_ACCESS_KEY:
+        source = "开发者本地调试 AK"
+    
+    if not access_key:
+        return f"错误: 未找到 AccessKey。请确保通过 Bohrium 平台打开应用或配置了 DEV_ACCESS_KEY。\n来源: {source}"
+
+    # bizNo 自动生成
+    timestamp = int(time.time())
+    rand_part = random.randint(1000, 9999)
+    biz_no = int(f"{timestamp}{rand_part}")
+
+    url = "https://openapi.dp.tech/openapi/v1/api/integral/consume"
+    headers = {
+        "accessKey": access_key,
+        "x-app-key": client_name if client_name else "",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        event_value = int(event_value)
+        sku_id = int(sku_id)
+    except ValueError:
+        return "错误: 扣费数额和 SkuId 必须为整数"
+
+    payload = {
+        "bizNo": biz_no,
+        "changeType": 1,
+        "eventValue": event_value,
+        "skuId": sku_id,
+        "scene": "appCustomizeCharge"
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=10)
+        result = resp.text
+        # Try to format JSON
+        try:
+            res_json = resp.json()
+            result = json.dumps(res_json, indent=2, ensure_ascii=False)
+        except:
+            pass
+    except Exception as e:
+        result = str(e)
+
+    return f"AccessKey 来源: {source}\nAccessKey: {access_key[:6]}***\n\n接口返回:\n{result}"
 
 APP_NAME = "agents"
 SESSION_USER_ID = "web-user"
 SESSION_ID = "default-session"
 
-session_service = InMemorySessionService()
-runner = Runner(app_name=APP_NAME, agent=root_agent, session_service=session_service)
-_session_ready = False
-_session_lock = asyncio.Lock()
+if USE_ADK:
+    if InMemorySessionService is None:
+        print("[Warn] InMemorySessionService 不可用，回退到简易 Runner")
+        USE_ADK = False
+    else:
+        try:
+            session_service = InMemorySessionService()
+            runner = Runner(app_name=APP_NAME, agent=root_agent, session_service=session_service)
+            _session_ready = False
+            _session_lock = None  # 懒初始化锁
+        except Exception as _runner_err:
+            print(f"[Warn] 初始化 ADK Runner 失败，回退到简易 Runner: {_runner_err}")
+            USE_ADK = False
+
+if not USE_ADK:
+    # 简易 Runner：直接调用底层模型（LiteLlm 或其它），包装为与 ADK 近似的事件结构
+    class SimpleEventContentPart:
+        def __init__(self, text: str):
+            self.text = text
+
+    class SimpleEventContent:
+        def __init__(self, text: str):
+            self.parts = [SimpleEventContentPart(text)]
+
+    class SimpleEvent:
+        def __init__(self, author: str, text: str):
+            self.author = author
+            self.content = SimpleEventContent(text)
+
+    class SimpleRunner:
+        def __init__(self, agent):
+            self.agent = agent
+        async def run_async(self, user_id: str, session_id: str, new_message, **kwargs):  # type: ignore
+            try:
+                parts = getattr(new_message, 'parts', [])
+                user_text = "\n".join([getattr(p, 'text', '') for p in parts if getattr(p, 'text', '')]) or str(new_message)
+            except Exception:
+                user_text = str(new_message)
+            model_obj = getattr(self.agent, 'model', None)
+            reply = "[模型不可用]"
+            if model_obj and hasattr(model_obj, 'generate_content'):
+                try:
+                    resp = model_obj.generate_content(user_text)
+                    reply = getattr(resp, 'text', None) or (str(resp) if resp else "[空响应]")
+                except Exception as e:
+                    reply = f"[调用失败: {e}]"
+            yield SimpleEvent(author=getattr(self.agent, 'name', 'agent'), text=reply)
+
+    runner = SimpleRunner(root_agent)
+    _session_ready = True  # 简易模式不做 session 管理
+    _session_lock = None
 
 
 async def _ensure_runner_session():
-    """确保存在用于当前Web会话的ADK Session。"""
-    global _session_ready
+    if not USE_ADK:
+        return
+    global _session_ready, _session_lock
     if _session_ready:
         return
-    async with _session_lock:
+    if _session_lock is None:
+        _session_lock_local = asyncio.Lock()
+        if globals().get('_session_lock') is None:
+            globals()['_session_lock'] = _session_lock_local
+    async with _session_lock:  # type: ignore[arg-type]
         if _session_ready:
             return
         session = await session_service.get_session(
@@ -52,8 +242,10 @@ async def _ensure_runner_session():
 
 
 async def _reset_runner_session():
-    """清理现有Session，便于重新开始对话。"""
     global _session_ready
+    if not USE_ADK:
+        _session_ready = True
+        return
     try:
         await session_service.delete_session(
             app_name=APP_NAME,
@@ -70,75 +262,95 @@ PAPER_DIR = "papers"
 os.makedirs(PAPER_DIR, exist_ok=True)
 
 
-async def collect_agent_response(message_str: str, filter_mode: str = "strict", use_vision: bool = False, vision_model: str = "gpt-4o") -> list:
-    """
-    异步收集Agent的响应chunks，通过ADK Runner调用Agent。
-    
-    Args:
-        message_str: 用户消息
-        filter_mode: 过滤模式，"strict"（严格）或 "relaxed"（宽松）
-    """
+async def collect_agent_response(message_str: str, filter_mode: str = "strict", use_vision: bool = False, vision_model: str = "gpt-4o", use_pipeline: bool = False, time_window_days: Optional[int] = None, source_pref: str = "arxiv_leaderboard") -> list:
+    """核心调用：增加超时与事件调试日志，避免长时间无明显反馈"""
     chunks = []
+    start_ts = time.time()
+    response_timeout_env = os.getenv("RESPONSE_TIMEOUT")
+    try:
+        # 默认等待时间由 45s 提升为 600s (10 分钟)，只在达到上限才判定超时
+        # 可通过环境变量 RESPONSE_TIMEOUT 覆盖（单位：秒）
+        timeout_sec = int(response_timeout_env) if response_timeout_env else 600
+    except ValueError:
+        timeout_sec = 600
+    # 为下游 SDK 统一设置请求超时（litellm等），可由环境变量覆盖
+    litellm_timeout_env = os.getenv("LITELLM_TIMEOUT")
+    try:
+        litellm_timeout = int(litellm_timeout_env) if litellm_timeout_env else 60
+    except ValueError:
+        litellm_timeout = 60
+    os.environ["LITELLM_TIMEOUT"] = str(litellm_timeout)
+    debug_events = os.getenv("ADK_DEBUG", "0").lower() in ("1", "true", "yes")
     try:
         await _ensure_runner_session()
         normalized_message = message_str if isinstance(message_str, str) else str(message_str)
-        
-        # 将过滤模式和 Vision Model 信息附加到消息中
+
         mode_hint = "\n[系统提示：当前过滤模式为" + ("严格模式" if filter_mode == "strict" else "宽松模式") + "。在调用 get_latest_sota 等工具时，请根据过滤模式决定是否放宽约束条件。宽松模式下，如果严格过滤没有结果，应自动放宽约束返回候选结果。]"
-        
+
         vision_hint = ""
         if use_vision:
             vision_hint = f"\n[系统提示：已启用 Vision Model 增强提取（{vision_model}）。在调用 run_trustworthy_sota_search 时，请传递 use_vision=True 和 vision_model='{vision_model}' 参数以启用 Vision Model 处理复杂表格和图表。]"
-        
-        enhanced_message = normalized_message.strip() + mode_hint + vision_hint
-        
+
+        pipeline_hint = ""
+        if use_pipeline and PIPELINE_AVAILABLE:
+            pipeline_hint = "\n[系统提示：已启用 Multi-Agent Pipeline 模式。对于 SOTA 查询，请优先使用 run_trustworthy_sota_search 而不是 get_latest_sota。]"
+        elif use_pipeline and not PIPELINE_AVAILABLE:
+            pipeline_hint = "\n[系统提示：Pipeline 功能不可用，将回退到 get_latest_sota。]"
+
+        recency_hint = ""
+        if time_window_days:
+            recency_hint = f"\n[系统提示：请在搜索阶段应用最近 {time_window_days} 天的时间窗，并按发布时间优先排序。]"
+
+        source_hint = ""
+        if source_pref:
+            source_hint = f"\n[系统提示：来源偏好为 {source_pref}。请优先使用 {source_pref}，必要时再回退其它来源。]"
+
+        enhanced_message = normalized_message.strip() + mode_hint + vision_hint + pipeline_hint + recency_hint + source_hint
+
         user_content = genai_types.Content(
             role="user",
             parts=[genai_types.Part(text=enhanced_message)],
         )
 
-        async for event in runner.run_async(
-            user_id=SESSION_USER_ID,
-            session_id=SESSION_ID,
-            new_message=user_content,
-        ):
-            chunks.append(event)
-            
+        async def _run():
+            async for event in runner.run_async(
+                user_id=SESSION_USER_ID,
+                session_id=SESSION_ID,
+                new_message=user_content,
+            ):
+                chunks.append(event)
+                if debug_events:
+                    try:
+                        print(f"[ADK-Event] 累计{len(chunks)}条 | 类型={type(event).__name__}")
+                    except Exception:
+                        pass
+        try:
+            await asyncio.wait_for(_run(), timeout=timeout_sec)
+        except asyncio.TimeoutError:
+            print(f"[ADK-Timeout] 已等待 {timeout_sec}s 未完成，返回当前已收集分片 {len(chunks)}。可设置环境变量 RESPONSE_TIMEOUT 调整超时（秒），例如 1200 以等待 20 分钟。")
+        elapsed = int(time.time() - start_ts)
+        if debug_events:
+            print(f"[ADK-Done] 总耗时 {elapsed}s, 分片 {len(chunks)}")
+
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()
         print(f"直接调用模型失败详情:\n{error_detail}")
         raise Exception(
-            f"无法调用Agent。\n"
-            f"错误: {e}\n\n"
-            f"请检查Agent配置和API密钥是否正确。"
+            f"无法调用Agent。\n错误: {e}\n\n请检查Agent配置和API密钥是否正确。"
         )
     return chunks
 
 
-def chat_with_agent(message: str, history: list, filter_mode: str = "严格模式", use_vision: bool = False, vision_model: str = "gpt-4o") -> Tuple[str, list]:
-    """
-    与Agent进行对话
-    
-    Args:
-        message: 用户消息
-        history: 对话历史
-        filter_mode: 过滤模式，"严格模式" 或 "宽松模式"
-    """
+async def chat_with_agent(message, history, filter_mode="严格模式", use_vision=False, vision_model="gpt-4o", use_pipeline=False, time_window_choice="不限", source_pref_choice="arXiv+Leaderboard", provider="Gemini", api_key: Optional[str] = None):
     if not message or not message.strip():
         return "", history
-    
+
     history = history or []
 
     try:
         message_str = message if isinstance(message, str) else (str(message) if message else "")
-        
-        # 转换过滤模式为内部格式
         internal_mode = "relaxed" if filter_mode == "宽松模式" else "strict"
-        
-        # Vision Model 参数（从 UI 传入）
-        use_vision_flag = use_vision
-        vision_model_name = vision_model
 
         def _content_to_text(content) -> str:
             if not content:
@@ -213,17 +425,195 @@ def chat_with_agent(message: str, history: list, filter_mode: str = "严格模�
             cleaned = "\n".join(filtered_lines).strip()
             return cleaned or text.strip()
 
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(asyncio.run, collect_agent_response(message_str, internal_mode, use_vision_flag, vision_model_name))
-                    chunks = future.result()
-            else:
-                chunks = loop.run_until_complete(collect_agent_response(message_str, internal_mode, use_vision_flag, vision_model_name))
-        except RuntimeError:
-            chunks = asyncio.run(collect_agent_response(message_str, internal_mode, use_vision_flag, vision_model_name))
+        def _format_sota_json_if_any(raw_text: str) -> str:
+            """检测 SOTA JSON 并格式化为 Markdown 表格 + 链接。失败则原样返回。"""
+            if not raw_text:
+                return raw_text
+            candidate = raw_text.strip()
+            # 仅在看起来像 JSON 时尝试
+            if not (candidate.startswith('{') and candidate.endswith('}')):
+                return raw_text
+            import json as _json
+            try:
+                data = _json.loads(candidate)
+            except Exception:
+                return raw_text
+            # -------- Pipeline 结果格式化 (Multi-Agent) --------
+            # 特征：包含 keys: status==success, summary(dict), papers(list)
+            if isinstance(data, dict) and data.get('status') == 'success' and isinstance(data.get('papers'), list) and 'summary' in data and 'sota' not in data:
+                summary = data.get('summary', {})
+                papers = data.get('papers', [])
+                conflicts = data.get('conflicts', [])
+                q = data.get('query') or data.get('benchmark') or '未命名查询'
+                lines = []
+                lines.append(f"### 🔄 可信 Pipeline 汇总：{q}")
+                lines.append(f"**处理论文数**：{summary.get('total_papers_processed','?')}  ｜ **提取指标总数**：{summary.get('total_metrics_extracted','?')}  ｜ **发现冲突**：{summary.get('conflicts_found','0')}")
+                if not papers:
+                    lines.append('\n_未找到可格式化的论文结果_')
+                    return '\n'.join(lines)
+                # 表头：序号 / 标题 / 指标(前3) / 主指标值 / arXiv
+                lines.append('\n| # | 标题 | 指标(前3) | 主指标(猜测) | arXiv |')
+                lines.append('|---|------|-----------|-------------|-------|')
+                for idx, p in enumerate(papers, 1):
+                    if not isinstance(p, dict):
+                        continue
+                    title = (p.get('title') or '无标题').replace('|', ' ')[:120]
+                    pid = p.get('paper_id') or ''
+                    # 构造 arXiv 链接（若 short id 符合 pattern）
+                    arxiv_link = '—'
+                    if pid and len(pid) >= 5 and pid[0].isdigit():
+                        arxiv_link = f"[链接](https://arxiv.org/abs/{pid})"
+                    metrics = p.get('metrics') or []
+                    metric_names: list[str] = []
+                    for _m in metrics[:3]:
+                        if isinstance(_m, dict):
+                            mv = _m.get('metric')
+                            if isinstance(mv, str):
+                                metric_names.append(mv)
+                    metrics_cell = ', '.join(metric_names) if metric_names else '—'
+                    # 猜测主指标：ao/sr/auc/map/accuracy/f1_score/top1_accuracy 按优先级
+                    primary_val = '—'
+                    preferred_order = ['ao','sr','auc','map','accuracy','f1_score','top1_accuracy']
+                    metric_map = {}
+                    for m in metrics:
+                        if isinstance(m, dict):
+                            metric_map[m.get('metric')] = m.get('value')
+                    for k in preferred_order:
+                        v = metric_map.get(k)
+                        if isinstance(v, (int,float)):
+                            primary_val = f"{v:.2f}%" if v > 1 else f"{v*100:.2f}%"
+                            break
+                    lines.append(f"| {idx} | {title} | {metrics_cell} | {primary_val} | {arxiv_link} |")
+                # 冲突汇总
+                if isinstance(conflicts, list) and conflicts:
+                    lines.append('\n#### ⚠️ 冲突概览 (Top 5)')
+                    lines.append('| 指标 | 差异 | 等级 | 涉及论文数 |')
+                    lines.append('|-------|------|------|-----------|')
+                    for cf in conflicts[:5]:
+                        if not isinstance(cf, dict):
+                            continue
+                        lines.append(f"| {cf.get('metric','?')} | {cf.get('difference','?')} | {cf.get('conflict_level','?')} | {cf.get('papers_involved','?')} |")
+                return '\n'.join(lines).strip()
+            # 判定是 SOTA 结构
+            if not isinstance(data, dict) or 'sota' not in data or not isinstance(data.get('sota'), dict):
+                return raw_text
+            sota = data.get('sota') or {}
+            top = data.get('top_candidates') or []
+            benchmark = data.get('benchmark') or data.get('query') or '未知基准'
+            lines = []
+            lines.append(f"### 📌 {benchmark} 最新 SOTA")
+            # SOTA 主行
+            sid = sota.get('id') or 'N/A'
+            title = sota.get('title') or '无标题'
+            arxiv_url = sota.get('arxiv_url') or (f"https://arxiv.org/abs/{sid}" if sid and sid != 'N/A' else '')
+            pdf_url = sota.get('pdf_url') or ''
+            metric = sota.get('metric')
+            metric_str = f"{metric:.2f}" if isinstance(metric, (int, float)) else (str(metric) if metric is not None else '—')
+            lines.append("**SOTA 模型**：" + (f"[{title}]({arxiv_url})" if arxiv_url else title))
+            if pdf_url and pdf_url != arxiv_url:
+                lines.append(f"**PDF**：[{pdf_url}]({pdf_url})")
+            if metric_str:
+                lines.append(f"**主指标**：{metric_str}")
+            datasets = sota.get('datasets') or []
+            if datasets:
+                lines.append("**数据集**：" + ", ".join(datasets))
+            scopes = sota.get('scopes') or []
+            if scopes:
+                lines.append("**范式/范围**：" + ", ".join(scopes))
+            lines.append("")
+            # 候选表格
+            if isinstance(top, list) and top:
+                lines.append("#### 🔎 Top 候选 (最多 5 条)")
+                lines.append("| # | 标题 | 指标 | 数据集 | arXiv | PDF |")
+                lines.append("|---|-------|------|--------|-------|-----|")
+                for idx, c in enumerate(top, 1):
+                    if not isinstance(c, dict):
+                        continue
+                    cid = c.get('id') or ''
+                    ctitle = (c.get('title') or '').replace('|', ' ')[:120]
+                    cmetric = c.get('metric')
+                    cmetric_str = f"{cmetric:.2f}" if isinstance(cmetric, (int, float)) else (str(cmetric) if cmetric is not None else '—')
+                    cdsets = c.get('datasets') or []
+                    cdsets_str = ",".join(cdsets) if cdsets else '—'
+                    carxiv = c.get('arxiv_url') or (f"https://arxiv.org/abs/{cid}" if cid else '')
+                    carxiv_link = f"[链接]({carxiv})" if carxiv else '—'
+                    cpdf = c.get('pdf_url') or ''
+                    cpdf_link = f"[PDF]({cpdf})" if cpdf else '—'
+                    lines.append(f"| {idx} | {ctitle} | {cmetric_str} | {cdsets_str} | {carxiv_link} | {cpdf_link} |")
+            # 冲突信息（可选）
+            verification = data.get('verification') or {}
+            conflicts = verification.get('conflicts') or []
+            if conflicts:
+                lines.append("")
+                lines.append("#### ⚠️ 指标冲突摘要")
+                lines.append("| 指标 | 差异 | 等级 | 涉及论文数 |")
+                lines.append("|-------|------|------|-----------|")
+                for cf in conflicts[:5]:
+                    if not isinstance(cf, dict):
+                        continue
+                    lines.append(f"| {cf.get('metric','?')} | {cf.get('difference','?')} | {cf.get('conflict_level','?')} | {cf.get('papers_involved','?')} |")
+            formatted = "\n".join(lines).strip()
+            return formatted if formatted else raw_text
+
+        
+
+        # 根据前端输入设置对应的环境变量（仅当前进程生效）
+        provider_norm = (provider or "GPT").strip().lower()
+        provided_key = (api_key or "").strip()
+        if not provided_key:
+            history.append((message, "❌ 未提供 API Key。请在右侧输入框填写后再试。"))
+            return "", history
+        # 清理可能遗留的环境变量，避免串号
+        for k in ("GEMINI_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY"):
+            if os.getenv(k):
+                os.environ.pop(k, None)
+        if provider_norm == "gpt":
+            os.environ["OPENAI_API_KEY"] = provided_key
+        elif provider_norm == "deepseek":
+            os.environ["DEEPSEEK_API_KEY"] = provided_key
+        elif provider_norm == "qwen":
+            os.environ["DASHSCOPE_API_KEY"] = provided_key
+        elif provider_norm == "gemini":
+            os.environ["GEMINI_API_KEY"] = provided_key
+        else:
+            history.append((message, f"❌ 未知提供商: {provider}."))
+            return "", history
+
+        # 设置统一的提供商环境标识，供 agent.py 或后续切换使用
+        os.environ["LLM_PROVIDER"] = provider_norm
+
+        # 动态切换 root_agent 使用的模型，避免首次导入时锁死
+        if LiteLlm is not None:
+            try:
+                current_model_name = getattr(getattr(root_agent, "model", None), "model", "")
+                target_model_name = None
+                if provider_norm == "gpt":
+                    target_model_name = "openai/gpt-4o-mini"
+                elif provider_norm == "deepseek":
+                    target_model_name = "deepseek/deepseek-chat"
+                elif provider_norm == "qwen":
+                    target_model_name = "qwen/qwen-plus"
+                elif provider_norm == "gemini":
+                    target_model_name = "gemini/gemini-2.5-flash"
+                if target_model_name and target_model_name != current_model_name:
+                    root_agent.model = LiteLlm(model=target_model_name)
+                    print(f"[Model-Switch] 模型已切换为 {target_model_name}")
+            except Exception as switch_err:
+                print(f"[Model-Switch] 切换模型失败: {switch_err}")
+        else:
+            print("[Model-Switch] LiteLlm 不可用，无法动态切换模型。")
+
+        # 调用 Agent（保持在当前事件循环中，避免跨线程/跨事件循环）
+        _start_ts_local = time.time()
+        chunks = await collect_agent_response(
+            message_str,
+            internal_mode,
+            use_vision,
+            vision_model,
+            use_pipeline,
+            None if time_window_choice == "不限" else (180 if time_window_choice == "180 天" else 365),
+            "arxiv_leaderboard" if source_pref_choice == "arXiv+Leaderboard" else ("scholar" if source_pref_choice == "Scholar" else "arxiv")
+        )
 
         response = None
         agent_name = getattr(root_agent, "name", None)
@@ -240,7 +630,7 @@ def chat_with_agent(message: str, history: list, filter_mode: str = "严格模�
                 if isinstance(chunk, str) and chunk.strip():
                     response = chunk
                     break
-                elif hasattr(chunk, 'content'):
+                elif not isinstance(chunk, str) and hasattr(chunk, 'content'):
                     content_text = _content_to_text(chunk.content)
                     if content_text:
                         response = content_text
@@ -250,10 +640,10 @@ def chat_with_agent(message: str, history: list, filter_mode: str = "严格模�
                     if isinstance(text_val, str) and text_val.strip():
                         response = text_val
                         break
-        
+
         if not response:
-            response = "Agent已处理请求，但无法提取响应内容。请查看终端日志获取详细信息。"
-        
+            response = "⚠️ Agent可能仍在处理或未返回可解析内容。可稍后重试，或设置环境变量 RESPONSE_TIMEOUT 调整等待秒数。"
+
         if not isinstance(response, str):
             try:
                 if hasattr(response, '__str__'):
@@ -264,12 +654,20 @@ def chat_with_agent(message: str, history: list, filter_mode: str = "严格模�
                     response = f"[响应对象: {type(response).__name__}]"
             except Exception as e:
                 response = f"[无法转换响应: {str(e)}]"
-        
+
         response = _sanitize_agent_output(response)
+        response = _format_sota_json_if_any(response)
 
         if not response or not response.strip():
             response = "抱歉，我没有理解您的问题。请尝试重新表述您的问题。"
-        
+
+        # 追加响应耗时提示（可选）
+        try:
+            latency = int(time.time() - _start_ts_local)
+            response += f"\n\n⏱️ 响应耗时约 {latency}s"
+        except Exception:
+            pass
+
         history.append((message, response))
         return "", history
     except Exception as e:
@@ -278,960 +676,105 @@ def chat_with_agent(message: str, history: list, filter_mode: str = "严格模�
         return "", history
 
 
-async def clear_chat() -> Tuple[list, str]:
-    """清空聊天历史"""
+async def clear_chat():
     await _reset_runner_session()
     return [], ""
 
 
-def _apply_theme(selection: str) -> str:
-    """根据选择返回对应的主题脚本"""
-    mode = "dark" if selection == "酷炫夜间" else "light"
-    return f"<script>document.documentElement.setAttribute('data-theme', '{mode}');</script>"
-
-
+# 单一浅色主题 + 全宽布局（不使用 @import）
 custom_css = """
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
 :root {
-    color-scheme: dark;
-    --bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.3), transparent),
-                   radial-gradient(ellipse 60% 50% at 50% 100%, rgba(168, 85, 247, 0.2), transparent),
-                   linear-gradient(180deg, #0a0e27 0%, #1a1f3a 50%, #0f1419 100%);
-    --panel-bg: rgba(15, 23, 42, 0.85);
-    --panel-border: rgba(99, 102, 241, 0.4);
-    --panel-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(99, 102, 241, 0.1);
-    --text-color: #f1f5f9;
-    --muted-text: #94a3b8;
-    --hero-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15), rgba(14, 165, 233, 0.15));
-    --hero-border: rgba(99, 102, 241, 0.5);
-    --hero-glow: 0 0 40px rgba(99, 102, 241, 0.3);
-    --feature-bg: rgba(30, 41, 59, 0.6);
-    --feature-border: rgba(148, 163, 184, 0.2);
-    --feature-text: #e2e8f0;
-    --card-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.8));
-    --card-border: rgba(99, 102, 241, 0.3);
-    --accent-gradient: linear-gradient(135deg, #818cf8 0%, #a855f7 50%, #ec4899 100%);
-    --accent-shadow: 0 10px 40px rgba(129, 140, 248, 0.4), 0 0 20px rgba(168, 85, 247, 0.3);
-    --accent-hover: linear-gradient(135deg, #9ca3f0 0%, #c084fc 50%, #f472b6 100%);
-    --input-bg: rgba(30, 41, 59, 0.7);
-    --input-border: rgba(148, 163, 184, 0.3);
-    --input-focus: rgba(99, 102, 241, 0.5);
-    --input-focus-glow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    --secondary-border: rgba(129, 140, 248, 0.5);
-    --secondary-text: #c7d2fe;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --error-color: #ef4444;
+  color-scheme: light;
+  --bg: #f7f9fc;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-2: #3b82f6;
+  --ring: rgba(37, 99, 235, 0.2);
 }
 
-:root[data-theme="light"] {
-    color-scheme: light;
-    --bg-gradient: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
-                   radial-gradient(ellipse 60% 50% at 50% 100%, rgba(168, 85, 247, 0.1), transparent),
-                   linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
-    --panel-bg: rgba(255, 255, 255, 0.98);
-    --panel-border: rgba(99, 102, 241, 0.25);
-    --panel-shadow: 0 20px 60px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(99, 102, 241, 0.08);
-    --text-color: #0f172a;
-    --muted-text: #475569;
-    --hero-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.12), rgba(14, 165, 233, 0.12));
-    --hero-border: rgba(99, 102, 241, 0.3);
-    --hero-glow: 0 0 30px rgba(99, 102, 241, 0.2);
-    --feature-bg: rgba(255, 255, 255, 0.95);
-    --feature-border: rgba(99, 102, 241, 0.2);
-    --feature-text: #1e293b;
-    --card-bg: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 1));
-    --card-border: rgba(99, 102, 241, 0.25);
-    --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-    --accent-shadow: 0 10px 30px rgba(99, 102, 241, 0.25), 0 0 15px rgba(139, 92, 246, 0.15);
-    --accent-hover: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #f472b6 100%);
-    --input-bg: rgba(255, 255, 255, 1);
-    --input-border: rgba(99, 102, 241, 0.3);
-    --input-focus: rgba(99, 102, 241, 0.5);
-    --input-focus-glow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    --secondary-border: rgba(99, 102, 241, 0.5);
-    --secondary-text: #4f46e5;
-}
-
-* {
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-}
-
-body {
-    background: var(--bg-gradient);
-    background-attachment: fixed;
-    color: var(--text-color);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-weight: 400;
-    line-height: 1.6;
-    min-height: 100vh;
-}
-
-.gradio-container {
-    max-width: 100% !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 2rem 4rem !important;
-    border-radius: 0 !important;
-    background: var(--panel-bg) !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: blur(20px) saturate(180%);
-    position: relative;
-    overflow: hidden;
-    min-height: 100vh;
-}
-
-/* 主内容区域 */
-.gradio-row {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    gap: 2rem !important;
-}
-
-.gradio-column {
-    width: 100% !important;
-}
-
-.gradio-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
-}
-.hero {
-    background: var(--hero-bg);
-    border-radius: 1.5rem;
-    border: 1px solid var(--hero-border);
-    padding: 3rem 2.5rem;
-    margin-bottom: 2rem;
-    color: var(--text-color);
-    position: relative;
-    overflow: hidden;
-    box-shadow: var(--hero-glow);
-    backdrop-filter: blur(10px);
-}
-
-:root[data-theme="light"] .hero {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1), rgba(14, 165, 233, 0.1));
-    border-color: rgba(99, 102, 241, 0.3);
-}
-
-.hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -10%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.2), transparent);
-    border-radius: 50%;
-    animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(-20px, -20px) scale(1.1); }
-}
-
-.hero .eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.2em;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--muted-text);
-    margin-bottom: 1rem;
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    background: rgba(99, 102, 241, 0.1);
-    border-radius: 2rem;
-    border: 1px solid rgba(99, 102, 241, 0.2);
-}
-
-.hero h1 {
-    font-size: 2.75rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    line-height: 1.2;
-    color: var(--text-color) !important;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    -webkit-text-fill-color: var(--text-color) !important;
-}
-
-:root[data-theme="light"] .hero h1 {
-    color: #0f172a !important;
-    text-shadow: 0 2px 8px rgba(99, 102, 241, 0.2);
-    -webkit-text-fill-color: #0f172a !important;
-}
-
-.hero p {
-    color: var(--text-color);
-    opacity: 0.85;
-    font-size: 1.05rem;
-    max-width: 750px;
-    line-height: 1.7;
-}
-
-:root[data-theme="light"] .hero p {
-    color: #334155;
-    opacity: 0.9;
-}
-.feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    padding: 0;
-    margin-top: 1.5rem;
-    list-style: none;
-}
-
-.feature-grid li {
-    background: var(--feature-bg);
-    border: 1px solid var(--feature-border);
-    border-radius: 1rem;
-    padding: 1.25rem 1.5rem;
-    font-size: 0.95rem;
-    color: var(--text-color);
-    font-weight: 500;
-    backdrop-filter: blur(10px);
-    cursor: default;
-    position: relative;
-    overflow: hidden;
-}
-
-:root[data-theme="light"] .feature-grid li {
-    color: #1e293b;
-    background: rgba(255, 255, 255, 0.9);
-    border-color: rgba(99, 102, 241, 0.25);
-}
-
-.feature-grid li::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.1), transparent);
-    transition: left 0.5s ease;
-}
-
-.feature-grid li:hover::before {
-    left: 100%;
-}
-
-.feature-grid li:hover {
-    transform: translateY(-2px);
-    border-color: rgba(99, 102, 241, 0.5);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-}
-
-.stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 1.25rem;
-    padding: 1.75rem 1.5rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-}
-
-.stat-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--accent-gradient);
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-    border-color: rgba(99, 102, 241, 0.5);
-}
-
-.stat-card:hover::after {
-    transform: scaleX(1);
-}
-
-.stat-card .stat-value {
-    font-size: 2.5rem;
-    font-weight: 800;
-    color: var(--text-color) !important;
-    text-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-    -webkit-text-fill-color: var(--text-color) !important;
-    display: block;
-    margin-bottom: 0.5rem;
-    line-height: 1;
-}
-
-:root[data-theme="light"] .stat-card .stat-value {
-    color: #6366f1 !important;
-    text-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
-    -webkit-text-fill-color: #6366f1 !important;
-}
-
-.stat-card .stat-label {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-color);
-    opacity: 0.9;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-.gradio-chatbot {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 1.5rem !important;
-    border: 2px solid var(--panel-border) !important;
-    background: var(--input-bg) !important;
-    backdrop-filter: blur(15px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-    min-height: 600px !important;
-    max-height: 75vh !important;
-    padding: 2rem !important;
-    overflow-y: auto !important;
-}
-
-.gradio-chatbot > div {
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-:root[data-theme="light"] .gradio-chatbot {
-    background: rgba(255, 255, 255, 0.98) !important;
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-    border-color: rgba(99, 102, 241, 0.25) !important;
-}
-
-.gradio-chatbot .user {
-    background: var(--accent-gradient) !important;
-    color: #fff !important;
-    border-radius: 1.25rem !important;
-    padding: 1.25rem 1.5rem !important;
-    margin: 1rem 0 !important;
-    margin-left: auto !important;
-    margin-right: 0 !important;
-    max-width: 75% !important;
-    box-shadow: 0 6px 20px rgba(129, 140, 248, 0.4), 0 2px 8px rgba(168, 85, 247, 0.3) !important;
-    border: none !important;
-    font-weight: 500 !important;
-    line-height: 1.6 !important;
-    word-wrap: break-word !important;
-}
-
-.gradio-chatbot .bot {
-    background: var(--feature-bg) !important;
-    color: var(--text-color) !important;
-    border-radius: 1.25rem !important;
-    padding: 1.25rem 1.5rem !important;
-    margin: 1rem 0 !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
-    max-width: 80% !important;
-    border: 1px solid var(--feature-border) !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-    font-weight: 400 !important;
-    line-height: 1.7 !important;
-    word-wrap: break-word !important;
-}
-
-:root[data-theme="light"] .gradio-chatbot .bot {
-    background: rgba(248, 250, 252, 0.95) !important;
-    color: #1e293b !important;
-    border-color: rgba(99, 102, 241, 0.25) !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-}
-
-.gradio-textbox {
-    border-radius: 1rem !important;
-    width: 100% !important;
-}
-
-.gradio-textbox textarea {
-    border-radius: 1rem !important;
-    border: 2px solid var(--input-border) !important;
-    min-height: 100px !important;
-    background: var(--input-bg) !important;
-    color: var(--text-color) !important;
-    padding: 1.25rem 1.5rem !important;
-    font-size: 1rem !important;
-    line-height: 1.7 !important;
-    transition: all 0.3s ease !important;
-    backdrop-filter: blur(10px);
-    width: 100% !important;
-    resize: vertical !important;
-}
-
-.gradio-textbox textarea:focus {
-    border-color: var(--input-focus) !important;
-    box-shadow: var(--input-focus-glow) !important;
-    outline: none !important;
-    background: var(--input-bg) !important;
-    transform: translateY(-2px);
-}
-
-.gradio-button {
-    border-radius: 0.875rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.02em;
-    padding: 0.75rem 1.5rem !important;
-    font-size: 0.95rem !important;
-    transition: all 0.3s ease !important;
-    position: relative;
-    overflow: hidden;
-}
-
-.gradio-button::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    transform: translate(-50%, -50%);
-    transition: width 0.6s ease, height 0.6s ease;
-}
-
-.gradio-button:hover::before {
-    width: 300px;
-    height: 300px;
-}
-
-.gradio-button.primary {
-    background: var(--accent-gradient) !important;
-    border: none !important;
-    box-shadow: var(--accent-shadow) !important;
-    color: #fff !important;
-}
-
-.gradio-button.primary:hover {
-    background: var(--accent-hover) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 15px 45px rgba(129, 140, 248, 0.5), 0 0 25px rgba(168, 85, 247, 0.4) !important;
-}
-
-.gradio-button.secondary {
-    border: 2px solid var(--secondary-border) !important;
-    color: var(--secondary-text) !important;
-    background: transparent !important;
-    backdrop-filter: blur(10px);
-}
-
-.gradio-button.secondary:hover {
-    background: rgba(99, 102, 241, 0.1) !important;
-    border-color: rgba(99, 102, 241, 0.6) !important;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2) !important;
-}
-.filter-mode-selector {
-    background: var(--feature-bg) !important;
-    border: 1px solid var(--feature-border) !important;
-    border-radius: 1rem !important;
-    padding: 1.25rem !important;
-    margin-bottom: 1.25rem !important;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-    overflow: hidden !important;
-}
-
-.filter-mode-selector > * {
-    border-radius: 1rem !important;
-    overflow: hidden !important;
-}
-
-.filter-mode-selector .gr-radio {
-    border-radius: 1rem !important;
-    overflow: hidden !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; line-height: 1.6; }
 
-.filter-mode-selector:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.filter-mode-selector label {
-    color: var(--text-color) !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    margin-bottom: 0.75rem !important;
-    display: block;
-}
-
-:root[data-theme="light"] .filter-mode-selector label {
-    color: #0f172a !important;
-}
-
-.filter-mode-selector .gr-radio-group {
-    margin-top: 0.75rem !important;
-    display: flex;
-    gap: 1rem;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-}
-
-.filter-mode-selector .gr-radio-group label {
-    color: var(--text-color) !important;
-    opacity: 0.8;
-    font-size: 0.9rem !important;
-    font-weight: 500 !important;
-    padding: 0.5rem 1rem !important;
-    border-radius: 0.75rem !important;
-    border: 1px solid var(--feature-border) !important;
-    background: transparent !important;
-    transition: all 0.3s ease !important;
-    cursor: pointer;
-    margin: 0 !important;
-    box-shadow: none !important;
-}
-
-:root[data-theme="light"] .filter-mode-selector .gr-radio-group label {
-    color: #334155 !important;
-    border-color: rgba(99, 102, 241, 0.3) !important;
-}
-
-.filter-mode-selector .gr-radio-group label:hover {
-    background: rgba(99, 102, 241, 0.1) !important;
-    border-color: rgba(99, 102, 241, 0.4) !important;
-    opacity: 1;
-}
-
-.filter-mode-selector .gr-radio-group input[type="radio"]:checked + span {
-    color: var(--secondary-text) !important;
-    font-weight: 600 !important;
-}
-
-.filter-mode-selector .gr-radio-group input[type="radio"]:checked ~ label {
-    background: rgba(99, 102, 241, 0.15) !important;
-    border-color: rgba(99, 102, 241, 0.5) !important;
-    color: var(--secondary-text) !important;
-    opacity: 1;
-}
-
-:root[data-theme="light"] .filter-mode-selector .gr-radio-group input[type="radio"]:checked ~ label {
-    background: rgba(99, 102, 241, 0.12) !important;
-    border-color: rgba(99, 102, 241, 0.4) !important;
-    color: #4f46e5 !important;
-}
-
-.gradio-accordion {
-    border-radius: 1rem !important;
-    border: 1px solid var(--feature-border) !important;
-    background: var(--feature-bg) !important;
-    margin-bottom: 1rem !important;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.gradio-accordion:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.gradio-accordion .gradio-accordion-header {
-    background: var(--feature-bg) !important;
-    color: var(--text-color) !important;
-    padding: 1rem 1.25rem !important;
-    border-radius: 1rem 1rem 0 0 !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    border-bottom: 1px solid var(--feature-border) !important;
-}
-
-:root[data-theme="light"] .gradio-accordion .gradio-accordion-header {
-    background: rgba(255, 255, 255, 0.95) !important;
-    color: #0f172a !important;
-    border-bottom-color: rgba(99, 102, 241, 0.2) !important;
-}
-
-.gradio-accordion .gradio-accordion-content {
-    padding: 1.25rem !important;
-    background: var(--feature-bg) !important;
-}
-
-.gradio-checkbox {
-    margin-bottom: 1rem !important;
-}
-
-.gradio-checkbox label {
-    color: var(--text-color) !important;
-    font-weight: 500 !important;
-    font-size: 0.9rem !important;
-    cursor: pointer;
-}
-
-:root[data-theme="light"] .gradio-checkbox label {
-    color: #1e293b !important;
-}
-
-.gradio-checkbox input[type="checkbox"] {
-    width: 18px !important;
-    height: 18px !important;
-    border-radius: 0.375rem !important;
-    border: 2px solid var(--feature-border) !important;
-    cursor: pointer;
-    transition: all 0.3s ease !important;
-}
-
-.gradio-checkbox input[type="checkbox"]:checked {
-    background: var(--accent-gradient) !important;
-    border-color: transparent !important;
-}
-
-.gradio-radio {
-    margin-top: 0.75rem !important;
-}
-
-.gradio-radio label {
-    color: var(--text-color) !important;
-    opacity: 0.8;
-    font-size: 0.9rem !important;
-    padding: 0.5rem 0.75rem !important;
-    border-radius: 0.5rem !important;
-    transition: all 0.3s ease !important;
-}
-
-:root[data-theme="light"] .gradio-radio label {
-    color: #334155 !important;
-}
-
-.gradio-radio input[type="radio"]:checked + span {
-    color: var(--secondary-text) !important;
-    font-weight: 600 !important;
-    opacity: 1;
-}
+.gradio-container { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 20px 24px 36px !important; background: var(--bg) !important; }
+.gradio-row, .gradio-column, .gradio-block, .tabitem, .tabs, .tab-nav, .prose, .block, .form, .container { background: transparent !important; border-color: var(--border) !important; }
 
-:root[data-theme="light"] .gradio-radio input[type="radio"]:checked + span {
-    color: #4f46e5 !important;
-}
-.sidebar-card {
-    background: var(--feature-bg);
-    border-radius: 1.25rem;
-    border: 1px solid var(--feature-border);
-    padding: 1.5rem;
-    margin-bottom: 1.25rem;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
-}
-
-.sidebar-card:hover {
-    border-color: rgba(99, 102, 241, 0.4);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-}
-
-.sidebar-card h3 {
-    color: var(--text-color) !important;
-    font-weight: 700 !important;
-    font-size: 1.1rem !important;
-    margin-bottom: 1rem !important;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-:root[data-theme="light"] .sidebar-card h3 {
-    color: #0f172a !important;
-}
-
-.prompt-list {
-    list-style: none;
-    padding: 0;
-    margin: 0.75rem 0 0;
-}
-
-.prompt-list li {
-    padding: 0.6rem 0;
-    color: var(--text-color);
-    opacity: 0.85;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    transition: all 0.3s ease;
-}
-
-:root[data-theme="light"] .prompt-list li {
-    color: #334155;
-    opacity: 0.9;
-    border-bottom-color: rgba(99, 102, 241, 0.15);
-}
-
-.prompt-list li:last-child {
-    border-bottom: none;
-}
-
-.prompt-list li:hover {
-    color: var(--text-color);
-    opacity: 1;
-    padding-left: 0.5rem;
-}
-
-:root[data-theme="light"] .prompt-list li:hover {
-    color: #0f172a;
-}
-
-.footer {
-    text-align: center !important;
-    margin-top: 2rem !important;
-    padding: 1.5rem !important;
-    color: var(--text-color) !important;
-    opacity: 0.8;
-    font-size: 0.9rem;
-    border-top: 1px solid var(--feature-border);
-}
-
-:root[data-theme="light"] .footer {
-    color: #475569 !important;
-    border-top-color: rgba(99, 102, 241, 0.2) !important;
-}
-
-.gradio-examples {
-    border-radius: 1rem !important;
-    border: 1px solid var(--feature-border) !important;
-    background: var(--feature-bg) !important;
-    padding: 1rem !important;
-    margin-top: 1rem !important;
-}
-
-.gradio-examples .example {
-    background: var(--input-bg) !important;
-    border: 1px solid var(--input-border) !important;
-    border-radius: 0.75rem !important;
-    padding: 0.75rem 1rem !important;
-    margin: 0.5rem 0 !important;
-    color: var(--text-color) !important;
-    cursor: pointer;
-    transition: all 0.3s ease !important;
-    font-weight: 500;
-}
-
-:root[data-theme="light"] .gradio-examples .example {
-    background: rgba(255, 255, 255, 1) !important;
-    border-color: rgba(99, 102, 241, 0.3) !important;
-    color: #1e293b !important;
-}
-
-.gradio-examples .example:hover {
-    background: rgba(99, 102, 241, 0.1) !important;
-    border-color: rgba(99, 102, 241, 0.4) !important;
-    transform: translateX(4px);
-    color: var(--text-color) !important;
-}
-
-:root[data-theme="light"] .gradio-examples .example:hover {
-    background: rgba(99, 102, 241, 0.08) !important;
-    border-color: rgba(99, 102, 241, 0.5) !important;
-    color: #0f172a !important;
-}
-
-/* 滚动条美化 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--feature-bg);
-    border-radius: 4px;
-}
+.hero { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.hero .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.hero h1 { margin: 6px 0 8px; font-size: 26px; font-weight: 700; }
+.hero p { color: var(--muted); margin: 0; }
 
-::-webkit-scrollbar-thumb {
-    background: var(--accent-gradient);
-    border-radius: 4px;
-}
+.stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 14px 0 8px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
+.stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
+.stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-hover);
-}
+.gradio-row { gap: 16px !important; }
 
-/* 加载动画 */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
+.gradio-chatbot { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; padding: 10px !important; }
+.gradio-chatbot .user { background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important; color: #ffffff !important; border: none !important; }
+.gradio-chatbot .bot { background: var(--card) !important; border: 1px solid var(--border) !important; }
 
-.loading {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+.gradio-textbox textarea { background: var(--panel) !important; border: 1px solid var(--border) !important; color: var(--text) !important; border-radius: 10px !important; padding: 12px 14px !important; outline: none !important; box-shadow: none !important; }
+.gradio-textbox textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--ring) !important; }
 
-/* 对话消息气泡优化 */
-.gradio-chatbot .message {
-    margin-bottom: 1.5rem !important;
-}
+.gradio-button { border-radius: 10px !important; font-weight: 600 !important; }
+.gradio-button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important; color: #ffffff !important; border: none !important; }
+.gradio-button.secondary { background: transparent !important; color: var(--text) !important; border: 1px solid var(--border) !important; }
 
-.gradio-chatbot .message-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
+.gradio-accordion { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; }
+.gradio-accordion .gradio-accordion-header { color: var(--text) !important; }
 
-/* 输入区域优化 */
-.gradio-textbox-container {
-    width: 100% !important;
-    margin-top: 1.5rem !important;
-}
+.sidebar-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+.sidebar-card h3 { margin: 0 0 8px; font-size: 16px; }
+.prompt-list li { color: var(--muted); border-bottom: 1px dashed var(--border); }
+.prompt-list li:last-child { border-bottom: none; }
 
-/* 按钮组优化 */
-.gradio-button-group {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-}
+.footer { color: var(--muted) !important; border-top: 1px solid var(--border); }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .gradio-container {
-        padding: 1.5rem !important;
-    }
-    
-    .hero {
-        padding: 2rem 1.5rem !important;
-    }
-    
-    .hero h1 {
-        font-size: 2rem !important;
-    }
-    
-    .stat-grid {
-        grid-template-columns: 1fr !important;
-    }
-    
-    .feature-grid {
-        grid-template-columns: 1fr !important;
-    }
-    
-    .gradio-chatbot {
-        min-height: 400px !important;
-        padding: 1rem !important;
-    }
-    
-    .gradio-chatbot .user,
-    .gradio-chatbot .bot {
-        max-width: 90% !important;
-        padding: 1rem !important;
-    }
-}
+@media (max-width: 860px) { .stat-grid { grid-template-columns: 1fr; } }
 """
 
 
-# 创建Gradio界面
+# 创建Gradio界面（无主题切换，仅浅色）
 with gr.Blocks(
     title="SotaAgent - SOTA模型查询助手",
     theme=gr.themes.Soft(),
     css=custom_css,
-    head="""
-    <script>
-    // 页面加载时设置初始主题
-    (function() {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
-                document.documentElement.setAttribute('data-theme', 'dark');
-            });
-        } else {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    })();
-    </script>
-    """
 ) as iface:
-    with gr.Row():
-        theme_toggle = gr.Radio(
-            ["酷炫夜间", "简洁浅色"],
-            value="酷炫夜间",
-            label="界面主题",
-        )
 
     gr.Markdown(
         """
-        <div class="hero">
-            <p class="eyebrow">SotaAgent · 研究辅助面板</p>
-            <h1>精准检索基准 · 秒回最新 SOTA · 中文交互更自然</h1>
-            <p>整合 arXiv、Benchmark 配置与自定义工具链，帮助你快速定位实验表格、指标与模型亮点，支持自然语言与参数化双模式。</p>
-            <ul class="feature-grid">
-                <li>📚 论文检索与摘要速览</li>
-                <li>🏆 get_latest_sota 自动调用</li>
-                <li>📊 Benchmark 过滤 + 约束</li>
-                <li>⚙️ 中文提示词模版内置</li>
-        </ul>
-        </div>
-        <div class="stat-grid">
-            <div class="stat-card">
-                <span class="stat-value">120+</span>
-                <span class="stat-label">覆盖 Benchmarks</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-value">400+</span>
-                <span class="stat-label">可检索论文属性</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-value">3s</span>
-                <span class="stat-label">平均响应时间</span>
-            </div>
-        </div>
+        <div class=\"hero\">\n            <p class=\"eyebrow\">SotaAgent · 研究辅助面板</p>\n            <h1>精准检索基准 · 秒回最新 SOTA · 中文交互更自然</h1>\n            <p>整合 arXiv、Benchmark 配置与自定义工具链，帮助你快速定位实验表格、指标与模型亮点，支持自然语言与参数化双模式。</p>\n        </div>
         """
     )
-    
+
     with gr.Row():
         with gr.Column(scale=8):
-            # 获取图片路径（相对于 app.py 的位置）
             current_dir = os.path.dirname(os.path.abspath(__file__))
             parent_dir = os.path.dirname(current_dir)
-            avatar_image_path = os.path.join(parent_dir, "人工智能_ 人工智能_ 自动机_ 脑_ 数码产品_ 机器人学_爱给网_aigei_com.png")
-            # 如果图片不存在，尝试当前目录
-            if not os.path.exists(avatar_image_path):
-                avatar_image_path = os.path.join(current_dir, "人工智能_ 人工智能_ 自动机_ 脑_ 数码产品_ 机器人学_爱给网_aigei_com.png")
-            # 如果还是不存在，使用默认emoji
-            if not os.path.exists(avatar_image_path):
-                avatar_image_path = "🤖"
-            
-            chatbot = gr.Chatbot(
-                label="",
-                height=600,
-                avatar_images=(None, avatar_image_path),
-                type="tuples",
-                show_copy_button=True,
-                container=True,
-            )
-            
+            # 新的统一资源查找顺序：assets/avatar.png -> 当前目录 png -> 父目录原始长文件名 -> emoji
+            candidate_paths = [
+                os.path.join(current_dir, "assets", "avatar.png"),
+                os.path.join(current_dir, "avatar.png"),
+                os.path.join(parent_dir, "人工智能_ 人工智能_ 自动机_ 脑_ 数码产品_ 机器人学_爱给网_aigei_com.png"),
+                os.path.join(current_dir, "人工智能_ 人工智能_ 自动机_ 脑_ 数码产品_ 机器人学_爱给网_aigei_com.png"),
+            ]
+            avatar_image_path = "🤖"
+            for pth in candidate_paths:
+                if os.path.exists(pth):
+                    avatar_image_path = pth
+                    break
+
+            chatbot = gr.Chatbot(label="", height=600, avatar_images=(None, avatar_image_path), show_copy_button=True, container=True)
+
             with gr.Row():
-                msg = gr.Textbox(
-                    label="",
-                    placeholder="输入您的问题，例如：找 GOT-10k 上最近的纯监督 SOTA",
-                    scale=9,
-                    lines=3,
-                )
+                msg = gr.Textbox(label="", placeholder="输入您的问题，例如：找 GOT-10k 上最近的纯监督 SOTA", scale=9, lines=3)
                 submit_btn = gr.Button("发送 ✨", variant="primary", scale=1, size="lg")
-            
+
             with gr.Row():
                 clear_btn = gr.Button("清空对话", variant="secondary")
                 examples = gr.Examples(
@@ -1245,135 +788,119 @@ with gr.Blocks(
                     inputs=msg,
                     label="示例问题",
                 )
+
         with gr.Column(scale=4):
-            # 过滤模式选择器
+            provider_radio = gr.Radio(
+                choices=["GPT", "DeepSeek", "Qwen", "Gemini"],
+                value="GPT",
+                label="🔑 模型提供商",
+                info="选择你要使用的大模型提供商",
+            )
+            api_key_box = gr.Textbox(
+                label="API Key",
+                placeholder="在此粘贴你的 API 密钥（仅本次会话使用）",
+                type="password",
+            )
             filter_mode_radio = gr.Radio(
                 choices=["严格模式", "宽松模式"],
                 value="严格模式",
                 label="🔍 过滤模式",
                 info="严格模式：精确匹配所有约束条件；宽松模式：如果严格过滤无结果，自动放宽约束返回候选",
-                elem_classes=["filter-mode-selector"]
             )
-            
-            # Vision Model 选项
-            with gr.Accordion("🤖 Vision Model 增强（Beta）", open=False):
-                use_vision_checkbox = gr.Checkbox(
+
+            pipeline_available_display = "✅ 可用" if PIPELINE_AVAILABLE else "❌ 不可用（需要安装依赖）"
+            with gr.Accordion(f"🔄 Multi-Agent Pipeline（可选）{pipeline_available_display}", open=False):
+                use_pipeline_checkbox = gr.Checkbox(
                     value=False,
-                    label="启用 Vision Model",
-                    info="使用 GPT-4V/Claude Vision 处理复杂表格和图表（需要额外 API 调用，成本较高）"
+                    label="启用 Multi-Agent Pipeline",
+                    info="使用多智能体协作流程进行更可靠的 SOTA 验证（Scanner → Extractor → Normalizer → Verifier）",
+                    interactive=PIPELINE_AVAILABLE,
                 )
-                vision_model_radio = gr.Radio(
-                    choices=["gpt-4o", "claude-3-5-sonnet", "gemini-2.0-flash-exp"],
-                    value="gpt-4o",
-                    label="Vision Model 选择",
-                    info="选择用于处理复杂表格和图表的 Vision Model",
-                    visible=True
+                if not PIPELINE_AVAILABLE:
+                    gr.Markdown("<div style='font-size: 0.85em; color: #b45309;'>⚠️ 运行 Pipeline 前请安装：<code>pip install -r My_First_Agent/requirements_pipeline.txt</code></div>")
+
+            # 时间窗与来源偏好控件
+            with gr.Accordion("⏱️ 时间窗与来源偏好", open=False):
+                time_window_radio = gr.Radio(
+                    choices=["不限", "180 天", "365 天"],
+                    value="不限",
+                    label="时间窗"
                 )
-                gr.Markdown(
-                    """
-                    <div style="font-size: 0.85em; color: var(--muted-text); margin-top: 0.5rem;">
-                    <strong>💡 使用建议：</strong><br>
-                    • 仅在需要处理复杂表格/图表时启用<br>
-                    • Vision Model 会增加处理时间和成本<br>
-                    • 基础提取已足够处理大多数简单表格<br>
-                    • 启用后，在查询时使用"用可信的方式找..."会自动使用 Vision Model
-                    </div>
-                    """
-                )
-            
-            gr.Markdown(
-                """
-                <div class="sidebar-card">
-                    <h3>🎯 高效提问技巧</h3>
-                    <ul class="prompt-list">
-                        <li>➤ 描述 Benchmark + 时间窗口：例如 "GOT-10k 最近 180 天 SOTA"。</li>
-                        <li>➤ 加上约束：纯监督 / 零样本 / 不含额外数据。</li>
-                        <li>➤ 询问论文时附上 arXiv ID（如 2305.00012）。</li>
-                        <li>➤ 需要表格输出时附加 "请整理成表格"。</li>
-                    </ul>
-                </div>
-                """
-            )
-            with gr.Accordion("快捷模版", open=True):
-                gr.Markdown(
-                    """
-                    - **SOTA 查询**：`找 {Benchmark} 近 {时间} 的最新 SOTA，限制 {scope/constraint}`
-                    - **论文检索**：`搜索 {主题} 的论文并总结关键贡献`
-                    - **指标对比**：`列出 {Benchmark} 最近 5 篇论文及其指标`
-                    """
-                )
-            with gr.Accordion("常见任务", open=False):
-                gr.Markdown(
-                    """
-                    1. 提取实验表格并比较与自身模型差距  
-                    2. 列出 VLA / Tracking 常见基准与官方指标  
-                    3. 判断论文是否使用额外数据、是否零样本
-                    """
+                source_pref_radio = gr.Radio(
+                    choices=["arXiv+Leaderboard", "arXiv", "Scholar"],
+                    value="arXiv+Leaderboard",
+                    label="来源偏好"
                 )
 
+            with gr.Accordion("🤖 Vision Model 增强（Beta）", open=False):
+                use_vision_checkbox = gr.Checkbox(value=False, label="启用 Vision Model", info="处理复杂表格和图表（成本较高）")
+                vision_model_radio = gr.Radio(choices=["gpt-4o", "claude-3-5-sonnet", "gemini-2.0-flash-exp"], value="gpt-4o", label="Vision Model 选择")
+
+            with gr.Accordion("💰 光子支付测试", open=False):
+                gr.Markdown("测试光子扣费接口。请确保已获取 AccessKey (通过 Bohrium 打开)。")
+                pay_amount = gr.Number(label="扣费数额 (eventValue)", value=0, precision=0)
+                pay_sku = gr.Number(label="SkuId", value=0, precision=0)
+                pay_btn = gr.Button("提交扣费请求")
+                pay_result = gr.Textbox(label="接口返回", lines=5)
+                
+                pay_btn.click(
+                    fn=charge_photon,
+                    inputs=[pay_amount, pay_sku],
+                    outputs=[pay_result]
+                )
+
+            gr.Markdown(
+                """
+                <div class=\"sidebar-card\">\n                    <h3>🎯 高效提问技巧</h3>\n                    <ul class=\"prompt-list\">\n                        <li>描述 Benchmark + 时间窗口：例如 “GOT-10k 最近 180 天 SOTA”。</li>\n                        <li>加上约束：纯监督 / 零样本 / 不含额外数据。</li>\n                        <li>询问论文时附上 arXiv ID（如 2305.00012）。</li>\n                        <li>需要表格输出时附加 “请整理成表格”。</li>\n                    </ul>\n                </div>
+                """
+            )
+
+    # 交互事件
     msg.submit(
         fn=chat_with_agent,
-        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio],
+        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio, use_pipeline_checkbox, time_window_radio, source_pref_radio, provider_radio, api_key_box],
         outputs=[msg, chatbot],
+        api_name=False
     )
-    
     submit_btn.click(
         fn=chat_with_agent,
-        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio],
+        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio, use_pipeline_checkbox, time_window_radio, source_pref_radio, provider_radio, api_key_box],
         outputs=[msg, chatbot],
+        api_name=False
     )
-    
     clear_btn.click(
         fn=clear_chat,
         outputs=[chatbot, msg],
-    )
-    
-    theme_toggle.change(
-        fn=None,
-        inputs=theme_toggle,
-        outputs=None,
-        js="""
-        (selection) => {
-            const mode = selection === "酷炫夜间" ? "dark" : "light";
-            document.documentElement.setAttribute('data-theme', mode);
-            return [];
-        }
-        """
+        api_name=False
     )
 
-    gr.Markdown(
-        """
-        <div class="footer">
-        <p>💡 <strong>提示</strong>：使用自然语言提问，Agent会自动理解并调用相应的工具。</p>
-        <p>⚠️ <strong>注意</strong>：查询SOTA模型可能需要一些时间，如遇速率限制请稍候重试。</p>
-        </div>
-        """
-    )
+    gr.Markdown("""
+    <div class=\"footer\">\n      <p>💡 使用自然语言提问，Agent 会自动调用工具。</p>\n      <p>⚠️ 查询 SOTA 可能较慢，如遇速率限制请稍候重试。</p>\n    </div>
+    """)
 
 
 if __name__ == "__main__":
-    import socket
-    
-    def find_free_port(start_port=50001, max_attempts=10):
-        for i in range(max_attempts):
-            port = start_port + i
-            try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(('0.0.0.0', port))
-                    return port
-            except OSError:
-                continue
-        return None
-    
-    port = find_free_port(50001)
-    if port is None:
-        print("警告：50001-50010端口都被占用，Gradio将自动选择可用端口")
-        port = None
-    
+    # 在玻尔 Bohrium 平台部署时，需要固定使用 0.0.0.0:50001 端口对外提供服务
+    # 这里默认使用 50001 端口，如需本地调试其它端口，可通过环境变量 BOHRIUM_PORT 覆盖
+    port_env = os.getenv("BOHRIUM_PORT")
+    try:
+        port = int(port_env) if port_env else 50001
+    except ValueError:
+        print(f"环境变量 BOHRIUM_PORT 非法，回退到默认端口 50001，当前值: {port_env}")
+        port = 50001
+
+    # 获取 share 参数
+    share_env = os.getenv("GRADIO_SHARE")
+    share = True if share_env and share_env.lower() in ('true', '1', 'yes') else False
+
+    print(f"正在启动 Gradio 服务... (Share={share}, Port={port})")
+    if share:
+        print("注意：开启 Share 模式可能会导致启动缓慢，因为需要下载 FRPC 二进制文件并建立隧道。如果长时间卡住，请尝试关闭 Share 模式。")
+
     iface.launch(
         server_name='0.0.0.0',
         server_port=port,
-        share=False,
+        share=share,
         show_error=True,
         favicon_path=None,
         show_api=False,

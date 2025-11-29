@@ -278,3 +278,5 @@ def create_vision_extractor(model_name: str = "gpt-4o") -> VisionExtractor:
     """创建 Vision Extractor 实例"""
     return VisionExtractor(model_name)
 
+
+

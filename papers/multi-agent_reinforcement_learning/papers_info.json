@@ -1,0 +1,62 @@
+{
+  "2203.08975v2": {
+    "title": "A Survey of Multi-Agent Deep Reinforcement Learning with Communication",
+    "authors": [
+      "Changxi Zhu",
+      "Mehdi Dastani",
+      "Shihan Wang"
+    ],
+    "summary": "Communication is an effective mechanism for coordinating the behaviors of multiple agents, broadening their views of the environment, and to support their collaborations. In the field of multi-agent deep reinforcement learning (MADRL), agents can improve the overall learning performance and achieve their objectives by communication. Agents can communicate various types of messages, either to all agents or to specific agent groups, or conditioned on specific constraints. With the growing body of research work in MADRL with communication (Comm-MADRL), there is a lack of a systematic and structural approach to distinguish and classify existing Comm-MADRL approaches. In this paper, we survey recent works in the Comm-MADRL field and consider various aspects of communication that can play a role in designing and developing multi-agent reinforcement learning systems. With these aspects in mind, we propose 9 dimensions along which Comm-MADRL approaches can be analyzed, developed, and compared. By projecting existing works into the multi-dimensional space, we discover interesting trends. We also propose some novel directions for designing future Comm-MADRL systems through exploring possible combinations of the dimensions.",
+    "pdf_url": "https://arxiv.org/pdf/2203.08975v2",
+    "published": "2022-03-16"
+  },
+  "2004.08883v4": {
+    "title": "Variational Policy Propagation for Multi-agent Reinforcement Learning",
+    "authors": [
+      "Chao Qu",
+      "Hui Li",
+      "Chang Liu",
+      "Junwu Xiong",
+      "James Zhang",
+      "Wei Chu",
+      "Weiqiang Wang",
+      "Yuan Qi",
+      "Le Song"
+    ],
+    "summary": "We propose a \\emph{collaborative} multi-agent reinforcement learning algorithm named variational policy propagation (VPP) to learn a \\emph{joint} policy through the interactions over agents. We prove that the joint policy is a Markov Random Field under some mild conditions, which in turn reduces the policy space effectively. We integrate the variational inference as special differentiable layers in policy such that the actions can be efficiently sampled from the Markov Random Field and the overall policy is differentiable. We evaluate our algorithm on several large scale challenging tasks and demonstrate that it outperforms previous state-of-the-arts.",
+    "pdf_url": "https://arxiv.org/pdf/2004.08883v4",
+    "published": "2020-04-19"
+  },
+  "2506.20039v1": {
+    "title": "Learning Bilateral Team Formation in Cooperative Multi-Agent Reinforcement Learning",
+    "authors": [
+      "Koorosh Moslemi",
+      "Chi-Guhn Lee"
+    ],
+    "summary": "Team formation and the dynamics of team-based learning have drawn significant interest in the context of Multi-Agent Reinforcement Learning (MARL). However, existing studies primarily focus on unilateral groupings, predefined teams, or fixed-population settings, leaving the effects of algorithmic bilateral grouping choices in dynamic populations underexplored. To address this gap, we introduce a framework for learning two-sided team formation in dynamic multi-agent systems. Through this study, we gain insight into what algorithmic properties in bilateral team formation influence policy performance and generalization. We validate our approach using widely adopted multi-agent scenarios, demonstrating competitive performance and improved generalization in most scenarios.",
+    "pdf_url": "https://arxiv.org/pdf/2506.20039v1",
+    "published": "2025-06-24"
+  },
+  "2004.04722v1": {
+    "title": "Re-conceptualising the Language Game Paradigm in the Framework of Multi-Agent Reinforcement Learning",
+    "authors": [
+      "Paul Van Eecke",
+      "Katrien Beuls"
+    ],
+    "summary": "In this paper, we formulate the challenge of re-conceptualising the language game experimental paradigm in the framework of multi-agent reinforcement learning (MARL). If successful, future language game experiments will benefit from the rapid and promising methodological advances in the MARL community, while future MARL experiments on learning emergent communication will benefit from the insights and results gained from language game experiments. We strongly believe that this cross-pollination has the potential to lead to major breakthroughs in the modelling of how human-like languages can emerge and evolve in multi-agent systems.",
+    "pdf_url": "https://arxiv.org/pdf/2004.04722v1",
+    "published": "2020-04-09"
+  },
+  "1706.03235v3": {
+    "title": "ACCNet: Actor-Coordinator-Critic Net for \"Learning-to-Communicate\" with Deep Multi-agent Reinforcement Learning",
+    "authors": [
+      "Hangyu Mao",
+      "Zhibo Gong",
+      "Yan Ni",
+      "Zhen Xiao"
+    ],
+    "summary": "Communication is a critical factor for the big multi-agent world to stay organized and productive. Typically, most previous multi-agent \"learning-to-communicate\" studies try to predefine the communication protocols or use technologies such as tabular reinforcement learning and evolutionary algorithm, which can not generalize to changing environment or large collection of agents.\n  In this paper, we propose an Actor-Coordinator-Critic Net (ACCNet) framework for solving \"learning-to-communicate\" problem. The ACCNet naturally combines the powerful actor-critic reinforcement learning technology with deep learning technology. It can efficiently learn the communication protocols even from scratch under partially observable environment. We demonstrate that the ACCNet can achieve better results than several baselines under both continuous and discrete action space environments. We also analyse the learned protocols and discuss some design considerations.",
+    "pdf_url": "https://arxiv.org/pdf/1706.03235v3",
+    "published": "2017-06-10"
+  }
+}

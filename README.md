@@ -348,3 +348,25 @@ For questions or suggestions, please contact:
 Last update: 2025.11.25
 
 </div>
+
+---
+
+### 📁 Packaging Avatar Image
+
+To ensure the chat avatar PNG is included in the Docker image, copy your image into the application directory before building:
+
+```bash
+mkdir -p Agent-Test/assets
+copy "人工智能_ 人工智能_ 自动机_ 脑_ 数码产品_ 机器人学_爱给网_aigei_com.png" Agent-Test\assets\avatar.png
+```
+
+Search order used at runtime:
+1. `Agent-Test/assets/avatar.png`
+2. `Agent-Test/avatar.png`
+3. Repository root original long filename
+4. Fallback emoji 🤖 if none exist
+
+Rebuild after copying to include the resource:
+```bash
+docker build -t yourname/sota-agent:latest .
+```

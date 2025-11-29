@@ -8,7 +8,7 @@ from typing import Dict, Any
 
 # 延迟导入，避免循环依赖
 try:
-    from multi_agent_pipeline import SOTAPipeline
+    from .multi_agent_pipeline import SOTAPipeline
     PIPELINE_MODULE_AVAILABLE = True
 except ImportError as e:
     PIPELINE_MODULE_AVAILABLE = False

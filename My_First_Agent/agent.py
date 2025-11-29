@@ -36,11 +36,12 @@ except Exception as e:
 
 # 导入 Pipeline 工具（可选，如果可用）
 try:
-    from pipeline_tools import run_trustworthy_sota_search
+    from .pipeline_tools import run_trustworthy_sota_search
     PIPELINE_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     PIPELINE_AVAILABLE = False
-    print("[Warning] Multi-Agent Pipeline 不可用，请安装依赖: pip install -r requirements_pipeline.txt")
+    print(f"[Warning] Multi-Agent Pipeline 不可用: {e}")
+    print("[Warning] 如需启用，请安装依赖: pip install -r My_First_Agent/requirements_pipeline.txt")
 
 PAPER_DIR="papers"
 CACHE_DIR = os.path.join(PAPER_DIR, "web_search_cache")
@@ -52,11 +53,16 @@ _cache_file = os.path.join(CACHE_DIR, "name_type_cache.json")
 
 def _load_search_cache() -> Dict[str, Dict[str, Any]]:
     """加载网络搜索缓存"""
-    try:
-        with open(_cache_file, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    encodings = ["utf-8", "utf-8-sig", "gbk", "gb18030", "latin-1"]
+    for enc in encodings:
+        try:
+            with open(_cache_file, "r", encoding=enc, errors=("strict" if enc not in ("latin-1",) else "ignore")) as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+            continue
+        except Exception:
+            continue
+    return {}
 
 def _save_search_cache() -> None:
     """保存网络搜索缓存"""
@@ -73,6 +79,17 @@ def _fetch_arxiv_results(client: arxiv.Client, search: arxiv.Search, max_retries
     """
     安全获取 arXiv 查询结果，自动处理429等限流错误。
     """
+    # 避免代理干扰 arXiv 访问
+    try:
+        import os
+        for k in ("NO_PROXY", "no_proxy"):
+            hosts = os.environ.get(k, "")
+            hostset = {h.strip() for h in hosts.split(",") if h.strip()}
+            hostset.update({"export.arxiv.org", "arxiv.org"})
+            os.environ[k] = ",".join(sorted(hostset))
+    except Exception:
+        pass
+
     last_error: Optional[Exception] = None
     for attempt in range(max_retries):
         try:
@@ -80,9 +97,19 @@ def _fetch_arxiv_results(client: arxiv.Client, search: arxiv.Search, max_retries
         except arxiv.HTTPError as err:
             last_error = err
             status = getattr(err, "status", None)
-            if status == 429:
+            if status in (429, 500, 502, 503):
                 wait = base_delay * (attempt + 1)
-                print(f"[arXiv] 请求过于频繁，等待 {wait:.1f}s 后重试 (attempt {attempt + 1}/{max_retries})")
+                print(f"[arXiv] HTTP {status}，等待 {wait:.1f}s 后重试 (attempt {attempt + 1}/{max_retries})")
+                time.sleep(wait)
+                continue
+            raise
+        except Exception as err:
+            # 处理代理相关错误或远端关闭
+            last_error = err
+            msg = str(err).lower()
+            if any(tok in msg for tok in ["proxy", "remote end closed", "connection aborted"]):
+                wait = base_delay * (attempt + 1)
+                print(f"[arXiv] 连接/代理异常，等待 {wait:.1f}s 后重试 (attempt {attempt + 1}/{max_retries})")
                 time.sleep(wait)
                 continue
             raise
@@ -123,11 +150,18 @@ def search_papers(topic: str, max_results: int = 5) -> List[str]:
     file_path = os.path.join(path, "papers_info.json")
 
     # Try to load existing papers info
-    try:
-        with open(file_path, "r", encoding="utf-8") as json_file:
-            papers_info = json.load(json_file)
-    except (FileNotFoundError, json.JSONDecodeError):
-        papers_info = {}
+    papers_info = {}
+    encodings = ["utf-8", "utf-8-sig", "gbk", "gb18030", "latin-1"]
+    for enc in encodings:
+        try:
+            with open(file_path, "r", encoding=enc, errors=("strict" if enc not in ("latin-1",) else "ignore")) as json_file:
+                papers_info = json.load(json_file)
+            break
+        except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+            papers_info = {}
+            continue
+        except Exception:
+            continue
 
     # Process each paper and add to papers_info  
     paper_ids = []
@@ -166,14 +200,21 @@ def extract_info(paper_id: str) -> str:
         if os.path.isdir(item_path):
             file_path = os.path.join(item_path, "papers_info.json")
             if os.path.isfile(file_path):
-                try:
-                    with open(file_path, "r", encoding="utf-8") as json_file:
-                        papers_info = json.load(json_file)
-                        if paper_id in papers_info:
-                            return json.dumps(papers_info[paper_id], indent=2, ensure_ascii=False)
-                except (FileNotFoundError, json.JSONDecodeError) as e:
-                    print(f"Error reading {file_path}: {str(e)}")
-                    continue
+                encodings = ["utf-8", "utf-8-sig", "gbk", "gb18030", "latin-1"]
+                loaded = None
+                for enc in encodings:
+                    try:
+                        with open(file_path, "r", encoding=enc, errors=("strict" if enc not in ("latin-1",) else "ignore")) as json_file:
+                            papers_info = json.load(json_file)
+                            if paper_id in papers_info:
+                                loaded = papers_info[paper_id]
+                                break
+                    except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+                        continue
+                    except Exception:
+                        continue
+                if loaded is not None:
+                    return json.dumps(loaded, indent=2, ensure_ascii=False)
     
     return f"There's no saved information related to paper {paper_id}."
 
@@ -184,23 +225,35 @@ def _ensure_topic_dir(topic: str) -> Tuple[str, str]:
     return path, os.path.join(path, "papers_info.json")
 
 def _load_json(path: str) -> Dict[str, Any]:
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    encodings = ["utf-8", "utf-8-sig", "gbk", "gb18030", "latin-1"]
+    for enc in encodings:
+        try:
+            with open(path, "r", encoding=enc, errors=("strict" if enc not in ("latin-1",) else "ignore")) as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+            continue
+        except Exception:
+            continue
+    return {}
 
 def _save_json(path: str, data: Dict[str, Any]) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 def _paper_to_dict(p: arxiv.Result) -> Dict[str, Any]:
+    abs_url = None
+    try:
+        # arXiv 标准摘要链接
+        abs_url = f"https://arxiv.org/abs/{p.get_short_id()}"
+    except Exception:
+        abs_url = None
     return {
         "id": p.get_short_id(),
         "title": p.title,
         "authors": [a.name for a in p.authors],
         "summary": p.summary,
         "pdf_url": p.pdf_url,
+        "arxiv_url": abs_url,
         "primary_category": getattr(p, "primary_category", None),
         "categories": list(getattr(p, "categories", []) or []),
         "published": str(p.published.date()) if p.published else None,
@@ -550,7 +603,18 @@ def _web_search_name_type(name: str, max_results: int = 5) -> Tuple[Optional[boo
         # 使用 LLM 分析（需要先获取 model 实例）
         # 注意：这里需要延迟导入，因为 model 在文件末尾才定义
         from google.adk.models.lite_llm import LiteLlm
-        analysis_model = LiteLlm(model="gemini/gemini-2.5-flash")  # 使用与主 Agent 相同的模型
+        # 与主 Agent 保持一致的提供商选择
+        _provider = os.getenv("LLM_PROVIDER", "gpt").strip().lower()
+        if _provider == "deepseek":
+            analysis_model = LiteLlm(model="deepseek/deepseek-chat")
+        elif _provider in ("gpt", "openai"):
+            analysis_model = LiteLlm(model="openai/gpt-4o-mini")
+        elif _provider == "qwen":
+            analysis_model = LiteLlm(model="qwen/qwen-plus")
+        elif _provider == "gemini":
+            analysis_model = LiteLlm(model="gemini/gemini-2.5-flash")
+        else:
+            analysis_model = LiteLlm(model="openai/gpt-4o-mini")
         
         llm_response = analysis_model.generate_content(analysis_prompt)
         response_text = llm_response.text if hasattr(llm_response, 'text') else str(llm_response)
@@ -1028,6 +1092,7 @@ def _get_latest_sota_core(benchmark: str, window_days: int = 365, max_results: i
             "title": best["title"],
             "published": best["published"],
             "pdf_url": best["pdf_url"],
+            "arxiv_url": best.get("arxiv_url"),
             "metric": best.get("metric_score"),
             "metric_pattern": best.get("metric_pattern"),
             "sota_signal": best.get("sota_signal"),
@@ -1045,6 +1110,7 @@ def _get_latest_sota_core(benchmark: str, window_days: int = 365, max_results: i
                 "scopes": c.get("scopes") or [],
                 "datasets": c.get("datasets") or [],
                 "pdf_url": c["pdf_url"],
+                "arxiv_url": c.get("arxiv_url"),
                 "evidence": (c.get("summary") or "")[:200],
             } for c in candidates[:5]
         ]
@@ -1600,14 +1666,26 @@ def list_common_benchmarks_with_sota(domain: str = "vla", window_days: int = 730
     
     return json.dumps(results, ensure_ascii=False, indent=2)
 
-use_model = "gemini"
+"""根据环境变量选择后端 LLM 提供商与型号，统一封装。
+支持：GPT（OpenAI/Azure 视具体配置）、DeepSeek、Qwen（DashScope）、Gemini。
+优先从环境变量 `LLM_PROVIDER` 读取（gpt/deepseek/qwen/gemini），否则回退为 gpt。
+"""
+
+use_model = os.getenv("LLM_PROVIDER", "gpt").strip().lower()
 
 if use_model == "deepseek":
     model = LiteLlm(model="deepseek/deepseek-chat")
-if use_model == "gpt-4o":
-    model = LiteLlm(model="azure/gpt-4o")
-if use_model == "gemini":
+elif use_model == "gpt" or use_model == "openai":
+    # 这里使用通用标识，具体由 LiteLlm 配置决定（如 OPENAI_API_KEY / Azure 配置）
+    model = LiteLlm(model="openai/gpt-4o-mini")
+elif use_model == "qwen":
+    # Qwen (DashScope)
+    model = LiteLlm(model="qwen/qwen-plus")
+elif use_model == "gemini":
     model = LiteLlm(model="gemini/gemini-2.5-flash")
+else:
+    # 默认回退到 GPT，避免不可用提供商导致崩溃
+    model = LiteLlm(model="openai/gpt-4o-mini")
 
 
 root_agent = Agent(
