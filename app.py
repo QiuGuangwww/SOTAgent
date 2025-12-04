@@ -89,33 +89,45 @@ try:
 except Exception as _patch_err:
     print(f"[Gradio-Compat] Schema 兼容补丁加载失败：{_patch_err}")
 
-def charge_photon(event_value, sku_id, request: gr.Request):
-    """
-    光子扣费接口
-    """
-    # 优先取 Cookie 中的 accessKey
-    cookies = request.cookies
-    access_key = cookies.get("appAccessKey")
-    client_name = cookies.get("clientName")
-    
-    # Fallback for dev
-    DEV_ACCESS_KEY = os.getenv("DEV_ACCESS_KEY", "")
-    CLIENT_NAME = os.getenv("CLIENT_NAME", "")
-    
-    if not access_key:
-        access_key = DEV_ACCESS_KEY
-    
-    if not client_name:
-        client_name = CLIENT_NAME
+# --- 光子支付配置 ---
+PHOTON_SKU_ID = 18929  # 智能体比赛专用 SKU
+PHOTON_COST_PER_QUERY = 2
 
-    source = "未知"
-    if cookies.get("appAccessKey"):
-        source = "来自用户 Cookie"
-    elif DEV_ACCESS_KEY and access_key == DEV_ACCESS_KEY:
-        source = "开发者本地调试 AK"
+# --- 默认 API Key 配置 (从环境变量读取) ---
+DEFAULT_DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-be619a13306e407bbf651559bb0e0b5d")
+DEFAULT_DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+
+def deduct_photon(request: gr.Request, amount: int) -> tuple[bool, str]:
+    """
+    执行光子扣费
+    返回: (是否成功, 信息)
+    """
+    if PHOTON_SKU_ID == 0:
+        # 如果未配置 SKU ID，跳过扣费（或者报错，取决于需求，这里为了不阻碍测试先跳过但提示）
+        # 为了演示效果，这里返回 True 但打印警告
+        print("[Warn] PHOTON_SKU_ID 未配置，跳过实际扣费。")
+        return True, "未配置 SKU ID，模拟扣费成功"
+
+    # 获取 AccessKey
+    # Gradio 的 request.cookies 是一个字典
+    cookies = request.cookies
+    
+    # 增加调试日志，帮助定位 Key 缺失问题
+    print(f"[Debug] Cookies Keys: {list(cookies.keys())}")
+    # 尝试从 Headers 获取 (某些网关配置可能放在 Header)
+    headers = request.headers
+    
+    access_key = cookies.get("appAccessKey")
+    if not access_key:
+        # 尝试从 Header 获取
+        access_key = headers.get("appAccessKey") or headers.get("accessKey")
+
+    client_name = cookies.get("clientName")
+    if not client_name:
+        client_name = headers.get("clientName") or headers.get("x-app-key")
     
     if not access_key:
-        return f"错误: 未找到 AccessKey。请确保通过 Bohrium 平台打开应用或配置了 DEV_ACCESS_KEY。\n来源: {source}"
+        return False, "未找到 AccessKey。"
 
     # bizNo 自动生成
     timestamp = int(time.time())
@@ -129,33 +141,33 @@ def charge_photon(event_value, sku_id, request: gr.Request):
         "Content-Type": "application/json"
     }
     
-    try:
-        event_value = int(event_value)
-        sku_id = int(sku_id)
-    except ValueError:
-        return "错误: 扣费数额和 SkuId 必须为整数"
-
     payload = {
         "bizNo": biz_no,
         "changeType": 1,
-        "eventValue": event_value,
-        "skuId": sku_id,
+        "eventValue": amount,
+        "skuId": PHOTON_SKU_ID,
         "scene": "appCustomizeCharge"
     }
 
     try:
         resp = requests.post(url, headers=headers, json=payload, timeout=10)
-        result = resp.text
-        # Try to format JSON
+        # 检查 HTTP 状态码
+        if resp.status_code != 200:
+            return False, f"HTTP错误: {resp.status_code} - {resp.text}"
+        
         try:
             res_json = resp.json()
-            result = json.dumps(res_json, indent=2, ensure_ascii=False)
         except:
-            pass
-    except Exception as e:
-        result = str(e)
+            return False, f"响应解析失败: {resp.text}"
 
-    return f"AccessKey 来源: {source}\nAccessKey: {access_key[:6]}***\n\n接口返回:\n{result}"
+        # 检查业务状态码
+        if res_json.get("code") == 0:
+            return True, "扣费成功"
+        else:
+            return False, f"扣费失败: {res_json.get('message') or res_json}"
+
+    except Exception as e:
+        return False, f"请求异常: {str(e)}"
 
 APP_NAME = "agents"
 SESSION_USER_ID = "web-user"
@@ -342,11 +354,24 @@ async def collect_agent_response(message_str: str, filter_mode: str = "strict", 
     return chunks
 
 
-async def chat_with_agent(message, history, filter_mode="严格模式", use_vision=False, vision_model="gpt-4o", use_pipeline=False, time_window_choice="不限", source_pref_choice="arXiv+Leaderboard", provider="Gemini", api_key: Optional[str] = None):
+async def chat_with_agent(message, history, filter_mode="严格模式", use_vision=False, vision_model="qwen-vl-max", use_pipeline=False, time_window_choice="不限", source_pref_choice="arXiv+Leaderboard", provider="Gemini", api_key: Optional[str] = None, request: gr.Request = None, current_cost: int = 0):
     if not message or not message.strip():
-        return "", history
+        return "", history, current_cost, f"### 💎 本会话消耗光子: {current_cost}"
 
     history = history or []
+
+    # --- 自动扣费逻辑 ---
+    # 每次提问扣除固定光子数
+    deduct_success, deduct_msg = await asyncio.to_thread(deduct_photon, request, PHOTON_COST_PER_QUERY)
+    if not deduct_success:
+        # 扣费失败，阻止提问
+        error_msg = f"❌ 光子扣费失败，无法继续：{deduct_msg}"
+        history.append((message, error_msg))
+        return "", history, current_cost, f"### 💎 本会话消耗光子: {current_cost}"
+    
+    # 扣费成功，更新累计消耗
+    current_cost += PHOTON_COST_PER_QUERY
+    cost_display_str = f"### 💎 本会话消耗光子: {current_cost}"
 
     try:
         message_str = message if isinstance(message, str) else (str(message) if message else "")
@@ -553,31 +578,42 @@ async def chat_with_agent(message, history, filter_mode="严格模式", use_visi
                         continue
                     lines.append(f"| {cf.get('metric','?')} | {cf.get('difference','?')} | {cf.get('conflict_level','?')} | {cf.get('papers_involved','?')} |")
             formatted = "\n".join(lines).strip()
-            return formatted if formatted else raw_text
-
-        
-
         # 根据前端输入设置对应的环境变量（仅当前进程生效）
-        provider_norm = (provider or "GPT").strip().lower()
+        provider_norm = (provider or "DeepSeek").strip().lower()
         provided_key = (api_key or "").strip()
+
+        # 如果用户未提供 Key，尝试使用默认 Key
         if not provided_key:
-            history.append((message, "❌ 未提供 API Key。请在右侧输入框填写后再试。"))
-            return "", history
+            if provider_norm == "deepseek":
+                provided_key = DEFAULT_DEEPSEEK_API_KEY
+            elif provider_norm == "qwen":
+                provided_key = DEFAULT_DASHSCOPE_API_KEY
+
+        if not provided_key:
+            history.append((message, "❌ 未提供 API Key，且未配置默认 Key。请在右侧输入框填写。"))
+            return "", history, current_cost, cost_display_str
+
         # 清理可能遗留的环境变量，避免串号
         for k in ("GEMINI_API_KEY", "OPENAI_API_KEY", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY"):
             if os.getenv(k):
                 os.environ.pop(k, None)
-        if provider_norm == "gpt":
-            os.environ["OPENAI_API_KEY"] = provided_key
-        elif provider_norm == "deepseek":
+        if provider_norm == "deepseek":
             os.environ["DEEPSEEK_API_KEY"] = provided_key
         elif provider_norm == "qwen":
             os.environ["DASHSCOPE_API_KEY"] = provided_key
-        elif provider_norm == "gemini":
-            os.environ["GEMINI_API_KEY"] = provided_key
         else:
             history.append((message, f"❌ 未知提供商: {provider}."))
-            return "", history
+            return "", history, current_cost, cost_display_str
+
+        # --- 视觉模型 Key 自动补全 ---
+        # 如果启用了 Vision 且使用 Qwen-VL，但主模型不是 Qwen (即 DASHSCOPE_API_KEY 未被设置)
+        # 则尝试使用默认的 DashScope Key
+        if use_vision and "qwen" in vision_model.lower():
+            if not os.environ.get("DASHSCOPE_API_KEY"):
+                if DEFAULT_DASHSCOPE_API_KEY:
+                    os.environ["DASHSCOPE_API_KEY"] = DEFAULT_DASHSCOPE_API_KEY
+                else:
+                    print("[Warn] 启用 Qwen Vision 但未配置 DASHSCOPE_API_KEY，调用可能会失败。")
 
         # 设置统一的提供商环境标识，供 agent.py 或后续切换使用
         os.environ["LLM_PROVIDER"] = provider_norm
@@ -587,14 +623,10 @@ async def chat_with_agent(message, history, filter_mode="严格模式", use_visi
             try:
                 current_model_name = getattr(getattr(root_agent, "model", None), "model", "")
                 target_model_name = None
-                if provider_norm == "gpt":
-                    target_model_name = "openai/gpt-4o-mini"
-                elif provider_norm == "deepseek":
+                if provider_norm == "deepseek":
                     target_model_name = "deepseek/deepseek-chat"
                 elif provider_norm == "qwen":
                     target_model_name = "qwen/qwen-plus"
-                elif provider_norm == "gemini":
-                    target_model_name = "gemini/gemini-2.5-flash"
                 if target_model_name and target_model_name != current_model_name:
                     root_agent.model = LiteLlm(model=target_model_name)
                     print(f"[Model-Switch] 模型已切换为 {target_model_name}")
@@ -669,11 +701,11 @@ async def chat_with_agent(message, history, filter_mode="严格模式", use_visi
             pass
 
         history.append((message, response))
-        return "", history
+        return "", history, current_cost, cost_display_str
     except Exception as e:
         error_msg = f"❌ 处理请求时出错: {str(e)}\n\n请检查：\n1. API密钥是否正确配置\n2. 网络连接是否正常\n3. 输入的问题是否有效"
         history.append((message, error_msg))
-        return "", history
+        return "", history, current_cost, cost_display_str
 
 
 async def clear_chat():
@@ -681,79 +713,157 @@ async def clear_chat():
     return [], ""
 
 
-# 单一浅色主题 + 全宽布局（不使用 @import）
+# 单一浅色主题 + 全宽布局（科技感增强版）
 custom_css = """
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  color-scheme: light;
-  --bg: #f7f9fc;
-  --panel: #ffffff;
-  --card: #ffffff;
-  --border: #e5e7eb;
-  --text: #0f172a;
-  --muted: #64748b;
-  --accent: #2563eb;
-  --accent-2: #3b82f6;
-  --ring: rgba(37, 99, 235, 0.2);
+  --primary: #3b82f6;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --bg-page: #f0f4f8;
+  --bg-panel: #ffffff;
+  --border: #e2e8f0;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --radius: 16px;
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.15);
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif; line-height: 1.6; }
+body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
 
-.gradio-container { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 20px 24px 36px !important; background: var(--bg) !important; }
-.gradio-row, .gradio-column, .gradio-block, .tabitem, .tabs, .tab-nav, .prose, .block, .form, .container { background: transparent !important; border-color: var(--border) !important; }
+.gradio-container {
+    max-width: 95% !important;
+    margin: 0 auto !important;
+    padding-top: 20px !important;
+}
 
-.hero { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-.hero .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
-.hero h1 { margin: 6px 0 8px; font-size: 26px; font-weight: 700; }
-.hero p { color: var(--muted); margin: 0; }
+/* Hero Section */
+.hero {
+    background: var(--bg-panel);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-soft);
+    position: relative;
+    overflow: hidden;
+}
+.hero::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--primary-gradient);
+}
+.hero h1 {
+    font-weight: 800;
+    font-size: 28px;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+.hero p {
+    color: var(--text-muted);
+    font-size: 15px;
+}
 
-.stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 14px 0 8px; }
-.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
-.stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
-.stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+/* Chatbot Area - Visual Center */
+.gradio-chatbot {
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-soft), var(--shadow-glow) !important;
+    padding: 20px !important;
+}
+.gradio-chatbot .message.user {
+    background: var(--primary-gradient) !important;
+    border: none !important;
+    color: white !important;
+    border-radius: 16px 16px 2px 16px !important;
+}
+.gradio-chatbot .message.bot {
+    background: #f8fafc !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px 16px 16px 2px !important;
+}
 
-.gradio-row { gap: 16px !important; }
+/* Input Area */
+.gradio-textbox textarea {
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02) !important;
+    transition: all 0.3s ease;
+}
+.gradio-textbox textarea:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
 
-.gradio-chatbot { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; padding: 10px !important; }
-.gradio-chatbot .user { background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important; color: #ffffff !important; border: none !important; }
-.gradio-chatbot .bot { background: var(--card) !important; border: 1px solid var(--border) !important; }
+/* Buttons */
+button.primary {
+    background: var(--primary-gradient) !important;
+    border: none !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+    transition: transform 0.2s !important;
+}
+button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3) !important;
+}
 
-.gradio-textbox textarea { background: var(--panel) !important; border: 1px solid var(--border) !important; color: var(--text) !important; border-radius: 10px !important; padding: 12px 14px !important; outline: none !important; box-shadow: none !important; }
-.gradio-textbox textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--ring) !important; }
+/* Sidebar & Accordions */
+.sidebar-card, .gradio-accordion {
+    background: var(--bg-panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-soft) !important;
+    margin-bottom: 16px;
+}
+.gradio-accordion {
+    background: white !important;
+}
+.sidebar-card h3 {
+    color: var(--text-main);
+    font-weight: 600;
+}
+.prompt-list li {
+    color: var(--text-muted);
+    border-bottom: 1px dashed var(--border);
+    padding: 8px 0;
+}
 
-.gradio-button { border-radius: 10px !important; font-weight: 600 !important; }
-.gradio-button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)) !important; color: #ffffff !important; border: none !important; }
-.gradio-button.secondary { background: transparent !important; color: var(--text) !important; border: 1px solid var(--border) !important; }
-
-.gradio-accordion { background: var(--panel) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; }
-.gradio-accordion .gradio-accordion-header { color: var(--text) !important; }
-
-.sidebar-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-.sidebar-card h3 { margin: 0 0 8px; font-size: 16px; }
-.prompt-list li { color: var(--muted); border-bottom: 1px dashed var(--border); }
-.prompt-list li:last-child { border-bottom: none; }
-
-.footer { color: var(--muted) !important; border-top: 1px solid var(--border); }
-
-@media (max-width: 860px) { .stat-grid { grid-template-columns: 1fr; } }
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 """
 
 
 # 创建Gradio界面（无主题切换，仅浅色）
 with gr.Blocks(
-    title="SotaAgent - SOTA模型查询助手",
+    title="SOTAgent - SOTA模型查询助手",
     theme=gr.themes.Soft(),
     css=custom_css,
 ) as iface:
 
     gr.Markdown(
         """
-        <div class=\"hero\">\n            <p class=\"eyebrow\">SotaAgent · 研究辅助面板</p>\n            <h1>精准检索基准 · 秒回最新 SOTA · 中文交互更自然</h1>\n            <p>整合 arXiv、Benchmark 配置与自定义工具链，帮助你快速定位实验表格、指标与模型亮点，支持自然语言与参数化双模式。</p>\n        </div>
+        <div class=\"hero\">
+            <p class=\"eyebrow\">SOTAgent · 研究辅助面板</p>
+            <h1>精准检索基准 · 秒回最新 SOTA · 中文交互更自然</h1>
+            <p>整合 arXiv、Benchmark 配置与自定义工具链，帮助你快速定位实验表格、指标与模型亮点，支持自然语言与参数化双模式。</p>
+        </div>
         """
     )
 
     with gr.Row():
-        with gr.Column(scale=8):
+        with gr.Column(scale=9):
             current_dir = os.path.dirname(os.path.abspath(__file__))
             parent_dir = os.path.dirname(current_dir)
             # 新的统一资源查找顺序：assets/avatar.png -> 当前目录 png -> 父目录原始长文件名 -> emoji
@@ -769,7 +879,7 @@ with gr.Blocks(
                     avatar_image_path = pth
                     break
 
-            chatbot = gr.Chatbot(label="", height=600, avatar_images=(None, avatar_image_path), show_copy_button=True, container=True)
+            chatbot = gr.Chatbot(label="", height=750, avatar_images=(None, avatar_image_path), show_copy_button=True, container=True)
 
             with gr.Row():
                 msg = gr.Textbox(label="", placeholder="输入您的问题，例如：找 GOT-10k 上最近的纯监督 SOTA", scale=9, lines=3)
@@ -777,28 +887,17 @@ with gr.Blocks(
 
             with gr.Row():
                 clear_btn = gr.Button("清空对话", variant="secondary")
-                examples = gr.Examples(
-                    examples=[
-                        "找 GOT-10k 上最新的 SOTA 模型",
-                        "RT-1 数据集上纯监督的 SOTA",
-                        "VLA常用数据集及其对应的SOTA模型",
-                        "搜索关于vision transformer的论文",
-                        "列出最近关于强化学习的论文",
-                    ],
-                    inputs=msg,
-                    label="示例问题",
-                )
 
-        with gr.Column(scale=4):
+        with gr.Column(scale=3):
             provider_radio = gr.Radio(
-                choices=["GPT", "DeepSeek", "Qwen", "Gemini"],
-                value="GPT",
+                choices=["DeepSeek", "Qwen"],
+                value="DeepSeek",
                 label="🔑 模型提供商",
                 info="选择你要使用的大模型提供商",
             )
             api_key_box = gr.Textbox(
-                label="API Key",
-                placeholder="在此粘贴你的 API 密钥（仅本次会话使用）",
+                label="API Key (可选)",
+                placeholder="在此粘贴你的 API 密钥（留空则使用内置默认密钥）",
                 type="password",
             )
             filter_mode_radio = gr.Radio(
@@ -809,7 +908,7 @@ with gr.Blocks(
             )
 
             pipeline_available_display = "✅ 可用" if PIPELINE_AVAILABLE else "❌ 不可用（需要安装依赖）"
-            with gr.Accordion(f"🔄 Multi-Agent Pipeline（可选）{pipeline_available_display}", open=False):
+            with gr.Accordion("🔄 Multi-Agent Pipeline（可选）", open=False):
                 use_pipeline_checkbox = gr.Checkbox(
                     value=False,
                     label="启用 Multi-Agent Pipeline",
@@ -819,7 +918,6 @@ with gr.Blocks(
                 if not PIPELINE_AVAILABLE:
                     gr.Markdown("<div style='font-size: 0.85em; color: #b45309;'>⚠️ 运行 Pipeline 前请安装：<code>pip install -r My_First_Agent/requirements_pipeline.txt</code></div>")
 
-            # 时间窗与来源偏好控件
             with gr.Accordion("⏱️ 时间窗与来源偏好", open=False):
                 time_window_radio = gr.Radio(
                     choices=["不限", "180 天", "365 天"],
@@ -834,38 +932,35 @@ with gr.Blocks(
 
             with gr.Accordion("🤖 Vision Model 增强（Beta）", open=False):
                 use_vision_checkbox = gr.Checkbox(value=False, label="启用 Vision Model", info="处理复杂表格和图表（成本较高）")
-                vision_model_radio = gr.Radio(choices=["gpt-4o", "claude-3-5-sonnet", "gemini-2.0-flash-exp"], value="gpt-4o", label="Vision Model 选择")
+                vision_model_radio = gr.Radio(choices=["qwen-vl-max"], value="qwen-vl-max", label="Vision Model 选择")
 
-            with gr.Accordion("💰 光子支付测试", open=False):
-                gr.Markdown("测试光子扣费接口。请确保已获取 AccessKey (通过 Bohrium 打开)。")
-                pay_amount = gr.Number(label="扣费数额 (eventValue)", value=0, precision=0)
-                pay_sku = gr.Number(label="SkuId", value=0, precision=0)
-                pay_btn = gr.Button("提交扣费请求")
-                pay_result = gr.Textbox(label="接口返回", lines=5)
-                
-                pay_btn.click(
-                    fn=charge_photon,
-                    inputs=[pay_amount, pay_sku],
-                    outputs=[pay_result]
-                )
+            # 消费显示
+            cost_display = gr.Markdown("### 💎 本会话消耗光子: 0")
+            total_photon_cost = gr.State(value=0)
 
-            gr.Markdown(
-                """
-                <div class=\"sidebar-card\">\n                    <h3>🎯 高效提问技巧</h3>\n                    <ul class=\"prompt-list\">\n                        <li>描述 Benchmark + 时间窗口：例如 “GOT-10k 最近 180 天 SOTA”。</li>\n                        <li>加上约束：纯监督 / 零样本 / 不含额外数据。</li>\n                        <li>询问论文时附上 arXiv ID（如 2305.00012）。</li>\n                        <li>需要表格输出时附加 “请整理成表格”。</li>\n                    </ul>\n                </div>
-                """
+            gr.Examples(
+                examples=[
+                    "找 GOT-10k 上最新的 SOTA 模型",
+                    "RT-1 数据集上纯监督的 SOTA",
+                    "VLA常用数据集及其对应的SOTA模型",
+                    "搜索关于vision transformer的论文",
+                    "列出最近关于强化学习的论文",
+                ],
+                inputs=msg,
+                label="示例问题",
             )
 
     # 交互事件
     msg.submit(
         fn=chat_with_agent,
-        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio, use_pipeline_checkbox, time_window_radio, source_pref_radio, provider_radio, api_key_box],
-        outputs=[msg, chatbot],
+        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio, use_pipeline_checkbox, time_window_radio, source_pref_radio, provider_radio, api_key_box, total_photon_cost],
+        outputs=[msg, chatbot, total_photon_cost, cost_display],
         api_name=False
     )
     submit_btn.click(
         fn=chat_with_agent,
-        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio, use_pipeline_checkbox, time_window_radio, source_pref_radio, provider_radio, api_key_box],
-        outputs=[msg, chatbot],
+        inputs=[msg, chatbot, filter_mode_radio, use_vision_checkbox, vision_model_radio, use_pipeline_checkbox, time_window_radio, source_pref_radio, provider_radio, api_key_box, total_photon_cost],
+        outputs=[msg, chatbot, total_photon_cost, cost_display],
         api_name=False
     )
     clear_btn.click(
