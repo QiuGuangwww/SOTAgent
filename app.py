@@ -94,7 +94,7 @@ PHOTON_SKU_ID = 18929  # 智能体比赛专用 SKU
 PHOTON_COST_PER_QUERY = 2
 
 # --- 默认 API Key 配置 (从环境变量读取) ---
-DEFAULT_DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-be619a13306e407bbf651559bb0e0b5d")
+DEFAULT_DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "sk-Your—DeepSeek-APIKEY")
 DEFAULT_DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
 def deduct_photon(request: gr.Request, amount: int) -> tuple[bool, str]:
