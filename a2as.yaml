@@ -1,0 +1,746 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: qiuguangwww/sotagent
+    source: https://github.com/qiuguangwww/sotagent
+    branch: main
+    commit: "ffec9207"
+    scope: [My_First_Agent/agent.py, My_First_Agent/pipeline_tools.py, app.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:53:45Z'
+    url: https://a2as.org/certified/agents/qiuguangwww/sotagent
+  signatures:
+    digest: sha256:W6WJ4juKlMnDQGUp7P1RKztYIyXaCBW1sD2hJNri-Zw
+    key: ed25519:F8pUG8ocbBoRO1N1ujXk1luv9f1pkldg4Z7WZAbanEw
+    sig: ed25519:yOtTsn-O3y_wTF5Y3IYzwYTQZ9crq7qIqbGA--aVPhZEPJhr8E4J0JgQDTPB8kTiqUPy_9UL9efeTETCSlZtAg
+
+agents:
+  root_agent:
+    type: instance
+    models: [gpt-4o-mini]
+    params:
+      name: search_papers_agent
+      description: Agent to answer questions about papers, benchmarks, and SOTA models. Can list common benchmarks with their
+        corresponding SOTA models, especially for VLA (Vision-Language-Action) domain.
+      instruction: ['You are a helpful agent specialized in answering questions about papers, benchmarks, and State-of-the-Art
+          (SOTA) models. You can:', 1. Search for papers on specific topics or benchmarks, 2. Find the latest SOTA models
+          for specific benchmarks (supports both natural language queries and direct parameters), 3. List common benchmarks
+          (especially VLA benchmarks) with their corresponding SOTA models, 4. Answer questions about research papers and
+          their results, '5. Run trustworthy SOTA search using Multi-Agent Pipeline (when users need verified, cross-checked
+          results)', 'The get_latest_sota function supports two modes:', '- Natural language mode: Use query parameter, e.g.,
+          query=''找 GOT-10k 上最新的 SOTA 模型'' or query=''RT-1 数据集上纯监督的 SOTA''', '- Direct parameter mode: Use benchmark, window_days,
+          scope, constraints parameters directly', The function will automatically detect which mode to use based on the input.,
+        'IMPORTANT: When users ask for the ''strongest'', ''best performance'', or ''highest score'' SOTA model (e.g., ''找最强的
+          SOTA'', ''性能最好的模型''), you should pass their exact query to get_latest_sota. The function will automatically:', 1.
+          Sort results by performance metrics (highest score first) instead of by time, '2. Exclude lightweight/efficient
+          models (which are optimized for efficiency, not peak performance)', 3. Return the model with the best performance
+          metrics, 'When users need verified, cross-checked SOTA results (e.g., ''用可信的方式找 SOTA'', ''需要验证的 SOTA 结果''), you
+          can use run_trustworthy_sota_search function. This function uses a Multi-Agent Pipeline that:', '1. Searches multiple
+          sources (arXiv, Google Scholar)', 2. Extracts metrics from PDFs, 3. Normalizes and standardizes metrics, 4. Verifies
+          and detects conflicts between different sources, This is more reliable but slower than get_latest_sota., 'IMPORTANT:
+          If the system message indicates that Vision Model is enabled (use_vision=True), you should pass use_vision=True
+          and vision_model parameters to run_trustworthy_sota_search. Vision Model can handle complex tables and charts in
+          PDFs, providing more accurate extraction. Available vision_model options: ''gpt-4o'', ''claude-3-5-sonnet'', ''gemini-2.0-flash-exp''.',
+        'When users ask about common benchmarks (e.g., ''VLA常用数据集及其对应的SOTA模型'', ''常见Benchmark的SOTA模型''), you should use the
+          list_common_benchmarks or list_common_benchmarks_with_sota function to provide a comprehensive list of benchmarks
+          and their corresponding latest SOTA models. Always respond in Chinese (简体中文) when the user asks in Chinese.', 'If
+          a user asks for a list of common benchmarks or datasets with their SOTA models, you should directly call list_common_benchmarks
+          or list_common_benchmarks_with_sota with the appropriate domain parameter (e.g., ''vla'' for Vision-Language-Action).',
+        'CRITICAL: When users ask whether a name is a dataset or model (e.g., ''RT-1是数据集吗'', ''Is RT-1 a dataset?''), you
+          MUST use the check_name_type function to get accurate information. DO NOT rely on your own knowledge, as it may
+          be incorrect.', 'Important facts about common names:', '- RT-1, RT-2, RT-X are MODELS (Robot Transformer series),
+          NOT datasets', '- PaLM-E, Gato, SayCan, BC-Z are MODELS, NOT datasets', '- GOT-10k, LaSOT, OTB, TrackingNet, Open-X
+          Embodiment, Bridge, LIBERO, Calvin, ALFRED, Meta-World are DATASETS', 'When in doubt, always use check_name_type
+          function to verify.']
+
+models:
+  gpt-4o-mini:
+    type: literal
+    agents: [root_agent]
+    params:
+      alias: [openai/gpt-4o-mini]
+
+imports:
+  _gradio_client_utils: gradio_client.utils
+  _json: json
+  Agent: google.adk.agents.Agent
+  Any: typing.Any
+  app: app
+  arxiv: arxiv
+  asyncio: asyncio
+  base64: base64
+  BeautifulSoup: bs4.BeautifulSoup
+  datetime: datetime.datetime
+  Dict: typing.Dict
+  fitz: fitz
+  futures: concurrent.futures
+  genai_types: google.genai.types
+  google_search: googlesearch.search
+  gr: gradio
+  Image: PIL.Image
+  InMemorySessionService: google.adk.sessions.in_memory_session_service.InMemorySessionService
+  io: io
+  json: json
+  json_module: json
+  List: typing.List
+  LiteLlm: google.adk.models.lite_llm.LiteLlm
+  Optional: typing.Optional
+  os: os
+  pdfplumber: pdfplumber
+  PIPELINE_AVAILABLE: My_First_Agent.agent.PIPELINE_AVAILABLE
+  random: random
+  re: re
+  requests: requests
+  root_agent: My_First_Agent.agent.root_agent
+  run_trustworthy_sota_search: pipeline_tools.run_trustworthy_sota_search
+  Runner: google.adk.runners.Runner
+  scholarly: scholarly.scholarly
+  Set: typing.Set
+  SOTAPipeline: multi_agent_pipeline.SOTAPipeline
+  sys: sys
+  time: time
+  timedelta: datetime.timedelta
+  traceback: traceback
+  Tuple: typing.Tuple
+  VisionExtractor: vision_extractor.VisionExtractor
+
+functions:
+  __init__:
+    type: sync
+    module: My_First_Agent.vision_extractor
+    args: [self, model_name]
+  _analyze_query_context:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text, candidate_name]
+    params:
+      returns: Tuple
+  _clean_terms:
+    type: sync
+    module: My_First_Agent.agent
+    args: [terms]
+  _content_to_text:
+    type: sync
+    module: app
+    args: [content]
+    params:
+      returns: str
+  _detect_datasets:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text]
+    params:
+      returns: List[str]
+  _detect_scopes:
+    type: sync
+    module: My_First_Agent.agent
+    args: [title, summary]
+    params:
+      returns: Set[str]
+  _do_search:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+  _ensure_runner_session:
+    type: async
+    module: app
+  _ensure_topic_dir:
+    type: sync
+    module: My_First_Agent.agent
+    args: [topic]
+    params:
+      returns: Tuple
+  _extract_constraints:
+    type: sync
+    module: My_First_Agent.agent
+    args: [title, summary]
+    params:
+      returns: Dict
+  _extract_event_text:
+    type: sync
+    module: app
+    args: [event]
+    params:
+      returns: str
+  _extract_metric:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text]
+    params:
+      returns: Tuple
+  _extract_metric_with_dataset:
+    type: sync
+    module: My_First_Agent.agent
+    args: [title, summary]
+    params:
+      returns: Dict
+  _extract_metrics_basic:
+    type: sync
+    module: My_First_Agent.vision_extractor
+    args: [self, text]
+    params:
+      returns: List[Dict]
+  _fetch_arxiv_results:
+    type: sync
+    module: My_First_Agent.agent
+    args: [client, search, max_retries, base_delay]
+    params:
+      returns: List[arxiv.Result]
+  _fetch_search_result_content:
+    type: sync
+    module: My_First_Agent.agent
+    args: [url, timeout]
+    params:
+      returns: str
+  _format_sota_json_if_any:
+    type: sync
+    module: app
+    args: [raw_text]
+    params:
+      returns: str
+  _generate_recommendation:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, values, weighted_avg, diff]
+    params:
+      returns: str
+  _get_latest_sota_core:
+    type: sync
+    module: My_First_Agent.agent
+    args: [benchmark, window_days, max_results, scope, constraints, relaxed_mode, sort_by_performance]
+    params:
+      returns: str
+  _load_json:
+    type: sync
+    module: My_First_Agent.agent
+    args: [path]
+    params:
+      returns: Dict
+  _load_local_leaderboards:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self]
+    params:
+      returns: List[Dict]
+  _load_search_cache:
+    type: sync
+    module: My_First_Agent.agent
+    params:
+      returns: Dict
+  _looks_like_sota:
+    type: sync
+    module: My_First_Agent.agent
+    args: [title, summary]
+    params:
+      returns: bool
+  _nl_detect_benchmark:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text]
+    params:
+      returns: str
+  _nl_detect_best_performance:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text]
+    params:
+      returns: bool
+  _nl_detect_constraints:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text]
+    params:
+      returns: Dict
+  _nl_detect_scopes:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text]
+    params:
+      returns: Tuple
+  _nl_detect_window_days:
+    type: sync
+    module: My_First_Agent.agent
+    args: [text, default_days]
+    params:
+      returns: int
+  _paper_to_dict:
+    type: sync
+    module: My_First_Agent.agent
+    args: [p]
+    params:
+      returns: Dict
+  _reset_runner_session:
+    type: async
+    module: app
+  _run:
+    type: async
+    module: app
+  _safe_get_type:
+    type: sync
+    module: app
+    args: [schema]
+  _safe_json_schema_to_python_type:
+    type: sync
+    module: app
+    args: [schema, defs]
+  _sanitize_agent_output:
+    type: sync
+    module: app
+    args: [text]
+    params:
+      returns: str
+  _save_json:
+    type: sync
+    module: My_First_Agent.agent
+    args: [path, data]
+    params:
+      returns: None
+  _save_search_cache:
+    type: sync
+    module: My_First_Agent.agent
+    params:
+      returns: None
+  _score_key_for_dataset:
+    type: sync
+    module: My_First_Agent.agent
+    args: [metric_score, datasets]
+    params:
+      returns: float
+  _web_search_name_type:
+    type: sync
+    module: My_First_Agent.agent
+    args: [name, max_results]
+    params:
+      returns: Tuple
+  calculate_confidence_score:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, paper_info, metric_info]
+    params:
+      returns: float
+  chat_with_agent:
+    type: async
+    module: app
+    args: [message, history, filter_mode, use_vision, vision_model, use_pipeline, time_window_choice, source_pref_choice,
+      provider, api_key, request, current_cost]
+  check_name_type:
+    type: sync
+    module: My_First_Agent.agent
+    args: [name, use_web_search]
+    params:
+      returns: str
+  clear_chat:
+    type: async
+    module: app
+  collect_agent_response:
+    type: async
+    module: app
+    args: [message_str, filter_mode, use_vision, vision_model, use_pipeline, time_window_days, source_pref]
+    params:
+      returns: list
+  convert_metric:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, metric_name, value]
+    params:
+      returns: Optional[float]
+  create_vision_extractor:
+    type: sync
+    module: My_First_Agent.vision_extractor
+    args: [model_name]
+    params:
+      returns: VisionExtractor
+  deduct_photon:
+    type: sync
+    module: app
+    args: [request, amount]
+    params:
+      returns: tuple
+  detect_tables_in_pdf:
+    type: sync
+    module: My_First_Agent.vision_extractor
+    args: [self, pdf_path]
+    params:
+      returns: List[Dict]
+  download_pdf:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, pdf_url, paper_id]
+    params:
+      returns: Optional[str]
+  extract:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, paper_info]
+    params:
+      returns: Dict
+  extract_info:
+    type: sync
+    module: My_First_Agent.agent
+    args: [paper_id]
+    params:
+      returns: str
+  extract_metrics_from_text:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, text, context]
+    params:
+      returns: List[Dict]
+  extract_metrics_with_llm:
+    type: async
+    module: My_First_Agent.vision_extractor
+    args: [self, text, context]
+    params:
+      returns: List[Dict]
+  extract_table_with_vision:
+    type: async
+    module: My_First_Agent.vision_extractor
+    args: [self, pdf_path, page_num, table_bbox]
+    params:
+      returns: Optional[Dict]
+  extract_tables:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, pdf_path]
+    params:
+      returns: List[Dict]
+  extract_text:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, pdf_path]
+    params:
+      returns: str
+  find_conflicts:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, normalized_results]
+    params:
+      returns: List[Dict]
+  find_papers_by_benchmark:
+    type: sync
+    module: My_First_Agent.agent
+    args: [benchmark, max_results]
+    params:
+      returns: List[str]
+  format_pipeline_result:
+    type: sync
+    module: My_First_Agent.pipeline_tools
+    args: [result]
+    params:
+      returns: Dict
+  get_latest_sota:
+    type: sync
+    module: My_First_Agent.agent
+    args: [benchmark, query, window_days, max_results, scope, constraints]
+    params:
+      returns: str
+  get_pipeline:
+    type: sync
+    module: My_First_Agent.pipeline_tools
+    args: [use_vision, vision_model]
+  image_to_base64:
+    type: sync
+    module: My_First_Agent.vision_extractor
+    args: [self, image]
+    params:
+      returns: str
+  list_common_benchmarks:
+    type: sync
+    module: My_First_Agent.agent
+    args: [domain, include_sota]
+    params:
+      returns: str
+  list_common_benchmarks_with_sota:
+    type: sync
+    module: My_First_Agent.agent
+    args: [domain, window_days, max_results_per_benchmark, delay_seconds, max_benchmarks]
+    params:
+      returns: str
+  list_recent_papers:
+    type: sync
+    module: My_First_Agent.agent
+    args: [benchmark, limit, window_days, scope, constraints]
+    params:
+      returns: str
+  match_dict:
+    type: sync
+    module: My_First_Agent.agent
+    args: [pats]
+    params:
+      returns: List[str]
+  match_list:
+    type: sync
+    module: My_First_Agent.agent
+    args: [key]
+    params:
+      returns: bool
+  match_syn:
+    type: sync
+    module: My_First_Agent.agent
+    args: [syn_map, key]
+  metric_score:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [result]
+    params:
+      returns: float
+  mock_deduct_photon:
+    type: sync
+    module: debug_local
+    args: [request, amount]
+    params:
+      returns: tuple
+  norm:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [s]
+    params:
+      returns: str
+  normalize:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, extracted_data]
+    params:
+      returns: Dict
+  normalize_dataset_name:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, dataset_name]
+    params:
+      returns: str
+  normalize_metric_name:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, metric_name]
+    params:
+      returns: str
+  normalize_value:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, value, unit]
+    params:
+      returns: Tuple
+  parse_date:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [s]
+    params:
+      returns: float
+  pdf_page_to_image:
+    type: sync
+    module: My_First_Agent.vision_extractor
+    args: [self, pdf_path, page_num]
+    params:
+      returns: Optional[Image.Image]
+  recent_by_nl:
+    type: sync
+    module: My_First_Agent.agent
+    args: [query]
+    params:
+      returns: str
+  run:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, query, max_papers]
+    params:
+      returns: Dict
+  run_async:
+    type: async
+    module: app
+    args: [self, user_id, session_id, new_message]
+  run_sota_pipeline:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [query, max_papers, use_vision, vision_model, use_scholar, scholar_timeout]
+    params:
+      returns: Dict
+  run_trustworthy_sota_search:
+    type: sync
+    module: My_First_Agent.pipeline_tools
+    args: [query, max_papers, use_vision, vision_model]
+    params:
+      returns: str
+  search:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, query, max_results_per_source]
+    params:
+      returns: Dict
+  search_arxiv:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, query, max_results, include_terms, exclude_terms, categories, sort_by_recent, days_window]
+    params:
+      returns: List[Dict]
+  search_google_scholar:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, query, max_results]
+    params:
+      returns: List[Dict]
+  search_papers:
+    type: sync
+    module: My_First_Agent.agent
+    args: [topic, max_results]
+    params:
+      returns: List[str]
+  src_weight:
+    type: sync
+    module: My_First_Agent.multi_agent_pipeline
+    args: [src]
+    params:
+      returns: int
+  verify:
+    type: async
+    module: My_First_Agent.multi_agent_pipeline
+    args: [self, normalized_results]
+    params:
+      returns: Dict
+
+variables:
+  ADK_DEBUG:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [app]
+  BOHRIUM_PORT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [app]
+  DASHSCOPE_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv, os.environ, os.environ.get]
+      path: [app]
+  DEEPSEEK_API_KEY:
+    type: env
+    params:
+      caller: [os.getenv, os.environ]
+      path: [app]
+  GRADIO_SHARE:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [app]
+  k:
+    type: env
+    params:
+      caller: [os.getenv, os.environ.get]
+      path: [app, My_First_Agent.agent, My_First_Agent.multi_agent_pipeline]
+  LITELLM_TIMEOUT:
+    type: env
+    params:
+      caller: [os.getenv, os.environ]
+      path: [app]
+  LLM_PROVIDER:
+    type: env
+    params:
+      caller: [os.environ, os.getenv]
+      path: [My_First_Agent.agent]
+  RESPONSE_TIMEOUT:
+    type: env
+    params:
+      caller: [os.getenv]
+      path: [app]
+
+files:
+  _cache_file:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [open, json.load]
+      alias: [f]
+  avatar.png:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [current_dir, assets, avatar.png]
+  base_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.walk]
+  CACHE_DIR:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.makedirs]
+  current_dir:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.dirname]
+  file_path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [open, json.load, os.path.isfile]
+      alias: [json_file]
+  item_path:
+    type: variable
+    actions: [read]
+    params:
+      caller: [os.path.isdir]
+  name_type_cache.json:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [CACHE_DIR, name_type_cache.json]
+  papers_info.json:
+    type: pattern
+    actions: [read]
+    params:
+      caller: [os.path.join]
+      pattern: [path, papers_info.json]
+  path:
+    type: variable
+    actions: [read, write]
+    params:
+      caller: [os.makedirs, open, json.load]
+  pdf_path:
+    type: variable
+    actions: [write, read]
+    params:
+      caller: [open, fitz.open, pdfplumber.open]
+      alias: [f]
+
+networks:
+  arxiv.org:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      pattern: https://arxiv.org/abs/{p.get_short_id}
+      caller: [_paper_to_dict]
+  arxiv_link:
+    type: api
+    actions: [GET]
+    protocols: [https]
+    params:
+      pattern: '[链接](https://arxiv.org/abs/{pid})'
+      caller: [_format_sota_json_if_any]
+      dynamic: "True"
+      variable: arxiv_link
+  html.duckduckgo.com:
+    type: api
+    actions: [GET]
+    urls: ['/{...}']
+    protocols: [https]
+    ports: ["443"]
+    params:
+      pattern: https://html.duckduckgo.com/html/?q={name}+dataset+OR+benchmark+OR+model
+      caller: [_web_search_name_type]
+  openapi.dp.tech:
+    type: api
+    actions: [POST, GET]
+    urls: [/openapi/v1/api/integral/consume]
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [deduct_photon, _fetch_search_result_content]
